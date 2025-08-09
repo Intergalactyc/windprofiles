@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "windprofiles"
+version = "0.0.1"
+description = "Meteorological data analysis focused on wind profile characterization"
+readme = "README.md"
+license = { text = "LICENSE.txt" }
+authors = [
+    { name = "Elliott Walker", email = "walker.elliott.j@gmail.com" }
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent"
+]
+dependencies = [
+    "numpy",
+    "matplotlib",
+    "pandas",
+    "tqdm",
+    "scipy",
+    "windrose",
+    "fastparquet",
+]
+
+[project.urls]
+Source = "https://github.com/Intergalactyc/windprofiles"
+Homepage = "https://github.com/Intergalactyc/windprofiles"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["windprofiles*"]
