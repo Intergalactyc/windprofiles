@@ -24,6 +24,8 @@ dependencies = [
     "scipy",
     "windrose",
     "fastparquet",
+    "pytest",
+    "platformdirs"
 ]
 
 [project.urls]

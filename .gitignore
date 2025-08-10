@@ -11,3 +11,5 @@ venv*/
 
 .stignore
 *.sync-conflict*
+
+.pytest_cache/
