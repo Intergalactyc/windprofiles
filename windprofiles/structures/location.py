@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from ..lib.geo import local_gravity
-from ..data.elevation import get_elevation
-from ..data.timezone import get_timezone
+from ..data.gmaps import get_elevation, get_timezone
 
 
 @dataclass
