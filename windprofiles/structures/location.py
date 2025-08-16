@@ -7,7 +7,6 @@ from geopy.distance import geodesic
 
 @dataclass
 class Location:
-    # Any reason to make this inherit from BaseData?
     latitude: float
     """Latitude in degrees"""
     longitude: float

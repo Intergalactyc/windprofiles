@@ -3,58 +3,70 @@ from collections.abc import (
     Callable,
 )
 from abc import ABC
+from pandas import Series
 
 
 class _NamedObject(ABC):
     def __init_subclass__(
         cls,
     ):
-        cls._registry = {}
+        cls._primary_registry = {}
+        cls._secondary_registry = {}
 
     def __init__(
         self,
         name: str,
-        aliases: Collection[str] = None,
+        strong_aliases: Collection[str] = None,
+        weak_aliases: Collection[str] = None,
     ):
         self.name = name
-        self._register(name)
-        for alias in aliases or []:
-            self._register(alias)
+        self._register_strong(name)
+        for alias in strong_aliases or []:
+            self._register(alias, True)
+        for alias in weak_aliases or []:
+            self._register(alias, False)
 
-    def _register(
-        self,
-        key: str,
-    ):
+    @classmethod
+    def _transform(cls, value, strong: bool):
+        if strong:
+            return str(value).replace("-", "_").replace(" ", "")
+        return str(value).lower().replace("-", "_").replace(" ", "")
+
+    def _register(self, key: str, strong: bool):
         cls = self.__class__
-        _key = (
-            str(key)
-            .lower()
-            .replace(
-                "-",
-                "_",
-            )
-            .replace(
-                " ",
-                "_",
-            )
-        )
-        if _key in cls._registry:
+        _key = cls._transform(key, False)
+        if _key in cls._secondary_registry:
             raise ValueError(
                 f"Alias '{_key}' already registered in {cls.__name__}"
             )
-        cls._registry[_key] = self
+        cls._secondary_registry[_key] = self
+        if strong:
+            cls._primary_registry[cls._transform(key, True)] = self
 
-    def __getattr__(
-        cls,
-        item: str,
-    ):
-        _item = item.lower()
+    def __getattr__(cls, item: str):
+        _item = cls._transform(item, True)
         try:
-            return cls._registry[_item]
+            return cls._primary_registry[_item]
         except KeyError:
             raise AttributeError(
-                f"{cls.__name__} has no registered attribute '{_item}'"
+                f"{cls.__name__} has no strongly registered object '{_item}'"
             )
+
+    def __class_getitem__(cls, item: str):
+        _item = _NamedObject._transform(item, False)
+        try:
+            return cls._secondary_registry[_item]
+        except KeyError:
+            raise AttributeError(
+                f"{cls.__name__} has no registered object '{_item}'"
+            )
+
+    @classmethod
+    def get(cls, item: str):
+        try:
+            return cls[item]
+        except (AttributeError, KeyError):
+            return None
 
 
 class _Unit:
@@ -72,10 +84,10 @@ class _Unit:
         This can be done using factor (and optionally offset), or converter/inverse_converter for more complicated definitions.
         """
         self.name = name
-        self.convert = converter or (
+        self.converter = converter or (
             lambda x: factor * x + offset
         )  # this unit -> default unit
-        self.invert = inverse_converter or (
+        self.inverse_converter = inverse_converter or (
             lambda x: (x - offset) / factor
         )  # default unit -> this unit
 
@@ -84,12 +96,12 @@ class Dimension(_NamedObject):
     def __init__(
         self,
         name: str,
-        aliases: Collection[str],
+        aliases: list[str],  # case sensitive aliases for attr access
         default_unit: str,
     ):
         super().__init__(
             name=name,
-            aliases=aliases,
+            strong_aliases=aliases,
         )
         self._default_unit = _Unit(
             name=default_unit,
@@ -132,18 +144,60 @@ class Dimension(_NamedObject):
         )
         self._units[name] = unit
 
+    def _run_conversion(self, value, converter):
+        try:
+            return converter(value)
+        except Exception:
+            if isinstance(value, Series):
+                return value.apply(converter, axis=1)
+            if isinstance(value, list):
+                return [converter(v) for v in value]
+            raise
+
+    def _get_unit(self, unit_name):
+        unit = self._units.get(unit_name)
+        if unit is None:
+            raise KeyError(
+                f"Unit {unit_name} is not recognized. Possible values are {', '.join([u.name for u in self._units])}"
+            )
+
+    def convert(self, value, from_unit):
+        """Convert a value, or list/series of values, from the given unit to the default unit"""
+        unit = self._get_unit(from_unit)
+        self._run_conversion(value, unit.converter)
+
+    def convert_from(self, *args, **kwargs):
+        """Alias for Dimension.convert"""
+        return self.convert(*args, **kwargs)
+
+    def convert_to(self, value, to_unit):
+        """Convert a value, or list/series of values, from the default unit to the given unit"""
+        unit = self._get_unit(to_unit)
+        self._run_conversion(value, unit.inverse_converter)
+
 
 class Variable(_NamedObject):
     def __init__(
         self,
-        name: str,
-        aliases: list[str],
+        name: str,  # case-sensitive main name for display, used as a strong alias
         dimension: Dimension,
-        *,
-        case_sensitive: bool = False,
+        strong_aliases: list[
+            str
+        ],  # case-sensitive aliases for attr access (Variable.Alias), also used for case-insensitive dictlike access
+        weak_aliases: list[
+            str
+        ],  # case-insensitive aliases for dictlike access (possible/typical column names)
     ):
         super().__init__(
-            name=name,
-            aliases=aliases,
+            name=name, strong_aliases=strong_aliases, weak_aliases=weak_aliases
         )
         self._dimension = dimension
+
+    def convert(self, *args, **kwargs):
+        return self._dimension.convert(*args, **kwargs)
+
+    def convert_from(self, *args, **kwargs):
+        return self._dimension.convert_from(*args, **kwargs)
+
+    def convert_to(self, *args, **kwargs):
+        return self._dimension.convert_to(*args, **kwargs)
