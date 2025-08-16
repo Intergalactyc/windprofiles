@@ -155,16 +155,19 @@ class Dimension(_NamedObject):
             raise
 
     def _get_unit(self, unit_name):
+        if unit_name is None:
+            return self._default_unit
         unit = self._units.get(unit_name)
         if unit is None:
             raise KeyError(
                 f"Unit {unit_name} is not recognized. Possible values are {', '.join([u.name for u in self._units])}"
             )
+        return unit
 
     def convert(self, value, from_unit):
         """Convert a value, or list/series of values, from the given unit to the default unit"""
         unit = self._get_unit(from_unit)
-        self._run_conversion(value, unit.converter)
+        return self._run_conversion(value, unit.converter)
 
     def convert_from(self, *args, **kwargs):
         """Alias for Dimension.convert"""
@@ -173,7 +176,7 @@ class Dimension(_NamedObject):
     def convert_to(self, value, to_unit):
         """Convert a value, or list/series of values, from the default unit to the given unit"""
         unit = self._get_unit(to_unit)
-        self._run_conversion(value, unit.inverse_converter)
+        return self._run_conversion(value, unit.inverse_converter)
 
 
 class Variable(_NamedObject):

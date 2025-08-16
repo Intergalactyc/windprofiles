@@ -16,7 +16,7 @@ class Location:
     timezone: str = None
     """
     Local timezone, in representation such as "US/Central" or "America/Los_Angeles"
-    (will be used in Pandas' tz_localize/tz_convert where relevant)
+    (may be used in Pandas' tz_localize/tz_convert where relevant)
     """
     is_unknown: bool = False
 
@@ -43,6 +43,10 @@ class Location:
             self.g = local_gravity(self.latitude, self.elevation)
         self.distance = self._distance
 
+    @property
+    def coords(self):
+        return (self.latitude, self.longitude)
+
     @staticmethod
     def unknown() -> Location:
         return Location(None, None, is_unknown=True)
@@ -53,7 +57,7 @@ class Location:
         second: Location,
     ) -> float:
         """Returns: distance between locations in meters"""
-        geodesic
+        return geodesic(first.coords, second.coords).m
 
     def _distance(self, other: Location, *args, **kwargs) -> float:
         return Location.distance(self, other, *args, **kwargs)

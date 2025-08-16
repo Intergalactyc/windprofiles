@@ -13,14 +13,20 @@ class TimeSeries:
         """`units` should be a dictionary mapping data column names to units"""
         self._df = data.copy()
         self._tz = timezone  # Timezone of index
+        self._original_units = units
+        self._converted_units = {}
+        self._variables = {}
         # TODO: set up the datetime index for the dataframe and set timezone for it
 
         for column in data.columns:
-            unit = units.get(column)
             if (var := Variable.get(column)) is not None:
-                var.convert(data[column], "unit")
-            else:
-                pass
+                unit = units.get(column)
+                data[column] = var.convert(data[column], unit)
+                if (existing := self._variables.get(var)) is not None:
+                    raise ValueError(
+                        f"Column '{column}' could not be distinguished from '{existing}' (both parsed as {var.name})"
+                    )
+                self._variables[var] = column
 
     @property
     def df(self):

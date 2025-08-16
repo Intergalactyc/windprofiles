@@ -3,5 +3,5 @@ pandas
 pytest
 platformdirs
 meteostat
-black
 pre-commit
+geopy

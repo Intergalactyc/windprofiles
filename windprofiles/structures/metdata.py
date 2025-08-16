@@ -18,23 +18,24 @@ class Boom:
 
 
 class MetData(TimeSeries):
-    pass
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
 
 class MetTower:
-    def __init__(self, location: Location, booms: Collection[Boom]):
+    def __init__(self, location: Location, booms: Collection[Boom] = []):
         self._location = location
         self._booms = {boom.number: boom for boom in booms}
         if len(self._booms) != len(booms):
-            raise ValueError("Boom numbers are not unique!")
+            raise ValueError("Boom numbers must be unique")
 
     def add_boom(self, boom: Boom):
-        self._booms[boom.number] = boom
+        if (n := boom.number) in self._booms:
+            raise ValueError(f"Boom {n} already present in tower")
+        self._booms[n] = boom
 
     def get_boom(self, number: int) -> Boom:
-        """
-        Returns the boom with the given number, if it exists, and `None` otherwise.
-        """
+        """Returns the boom with the given number, if it exists, and `None` otherwise."""
         return self._booms.get(number)
 
 
