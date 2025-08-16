@@ -4,7 +4,9 @@ from platformdirs import user_config_dir
 
 _key_options = {"gmaps"}
 
-CONFIG_DIR = Path(user_config_dir("windprofiles", appauthor=False, ensure_exists=True))
+CONFIG_DIR = Path(
+    user_config_dir("windprofiles", appauthor=False, ensure_exists=True)
+)
 CONFIG_FILE = CONFIG_DIR / "config.json"
 
 

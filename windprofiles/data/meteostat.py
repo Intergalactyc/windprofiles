@@ -1,0 +1,97 @@
+from datetime import datetime
+from windprofiles.structures.location import Location
+from windprofiles.structures.metdata import WeatherStationData
+from meteostat import Stations, Hourly, Daily, Monthly
+
+
+def get_weather_data(
+    location: Location, period: tuple[datetime, datetime], frequency="hourly"
+) -> WeatherStationData:
+    start, end = period
+    if end <= start:
+        raise ValueError("end timestamp must be after start timestamp")
+    station = Stations().nearby(location.latitude, location.longitude).fetch(1)
+    match frequency:
+        case "hourly":
+            data = (
+                Hourly(station, start, end)
+                .fetch()
+                .reset_index()[
+                    [
+                        "time",
+                        "temp",
+                        "wspd",
+                        "wdir",
+                        "pres",
+                        "rhum",
+                        "prcp",
+                        "snow",
+                    ]
+                ]
+            )
+            data.rename(
+                columns={
+                    "temp": "t",
+                    "rhum": "rh",
+                    "wdir": "wd",
+                    "wspd": "ws",
+                    "pres": "p",
+                }
+            )
+        case "daily":
+            data = (
+                Daily(station, start, end)
+                .fetch()
+                .reset_index()[
+                    ["time", "tavg", "wspd", "wdir", "pres", "prcp", "snow"]
+                ]
+            )
+            data.rename(
+                columns={
+                    "tavg": "t",
+                    "wdir": "wd",
+                    "wspd": "ws",
+                    "pres": "p",
+                }
+            )
+        case "monthly":
+            data = (
+                Monthly(station, start, end)
+                .fetch()
+                .reset_index()[["time", "tavg", "wspd", "pres", "prcp"]]
+            )
+            data.rename(
+                columns={
+                    "tavg": "t",
+                    "wdir": "wd",
+                    "wspd": "ws",
+                    "pres": "p",
+                }
+            )
+        case _:
+            raise ValueError(
+                f"Frequency '{frequency}' is invalid (must be 'hourly', 'daily', or 'monthly')"
+            )
+    station = station.iloc[0]
+    return WeatherStation(
+        df=data,
+        station_wmo_id=station.get("wmo"),
+        station_icao_id=station.get("icao"),
+        station_name=station.get("name"),
+        units={
+            "t": "C",
+            "prcp": "mm",
+            "snow": "mm",
+            "p": "hPa",
+            "ws": "km/h",
+            "wd": "CW-N",
+            "rh": "%",
+        },
+        timezone="UTC",
+        location=Location(
+            latitude=station["latitude"],
+            longitude=station["longitude"],
+            elevation=station["elevation"],
+            timezone=station["timezone"],
+        ),
+    )

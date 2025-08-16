@@ -16,22 +16,33 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent"
 ]
-dependencies = [
-    "numpy",
-    "matplotlib",
-    "pandas",
-    "tqdm",
-    "scipy",
-    "windrose",
-    "fastparquet",
-    "pytest",
-    "platformdirs"
-]
+requires-python = ">=3.11"
+dynamic = ["dependencies"]
 
 [project.urls]
 Source = "https://github.com/Intergalactyc/windprofiles"
 Homepage = "https://github.com/Intergalactyc/windprofiles"
 
 [tool.setuptools.packages.find]
-where = ["."]
-include = ["windprofiles*"]
+include = ["windprofiles", "windprofiles.*"]
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
+
+[tool.black]
+line-length = 79
+skip-string-normalization = false
+exclude = '''
+/(
+    \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  | docs
+)/
+'''

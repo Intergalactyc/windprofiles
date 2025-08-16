@@ -1,5 +1,5 @@
-from ..user.config import get_api_key
-from .request import urlopen_with_cache, APIException
+from windprofiles.user.config import get_api_key
+from windprofiles.data.request import urlopen_with_cache, APIException
 
 from time import time
 
