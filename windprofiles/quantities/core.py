@@ -1,3 +1,4 @@
+from windprofiles.utilities.collections import CaseInsensitiveDict
 from collections.abc import (
     Collection,
     Callable,
@@ -68,6 +69,12 @@ class _NamedObject(ABC):
         except (AttributeError, KeyError):
             return None
 
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}.{self.__class__.transform(self.name, strong = True)}"
+
 
 class _Unit:
     def __init__(
@@ -75,6 +82,7 @@ class _Unit:
         name: str,
         factor: float,
         offset: float = 0,
+        aliases: Collection[str] = None,
         converter: Callable = None,
         inverse_converter: Callable = None,
     ):
@@ -84,6 +92,8 @@ class _Unit:
         This can be done using factor (and optionally offset), or converter/inverse_converter for more complicated definitions.
         """
         self.name = name
+        self.aliases = set(aliases) if aliases else set()
+        self.aliases.add(name)
         self.converter = converter or (
             lambda x: factor * x + offset
         )  # this unit -> default unit
@@ -91,13 +101,17 @@ class _Unit:
             lambda x: (x - offset) / factor
         )  # default unit -> this unit
 
+    def __str__(self):
+        return self.name
+
 
 class Dimension(_NamedObject):
     def __init__(
         self,
         name: str,
-        aliases: list[str],  # case sensitive aliases for attr access
+        aliases: Collection[str],  # case sensitive aliases for attr access
         default_unit: str,
+        default_unit_aliases,
     ):
         super().__init__(
             name=name,
@@ -107,13 +121,16 @@ class Dimension(_NamedObject):
             name=default_unit,
             factor=1,
         )
-        self._units = {default_unit: self._default_unit}
+        self._units = CaseInsensitiveDict(
+            {a: self._default_unit for a in self._default_unit.aliases}
+        )
 
     def register_unit(
         self,
         name,
         factor: float,
         offset: float = 0,
+        aliases: Collection[str] = None,
         converter: Callable = None,
         inverse_converter: Callable = None,
         ignore_existing: bool = False,
@@ -135,14 +152,20 @@ class Dimension(_NamedObject):
             raise ValueError(
                 f"Unit '{name}' already registered for dimension {self.name}"
             )
+        for alias in aliases:
+            if alias in self._units:
+                raise ValueError(
+                    f"Alias '{alias}' already registered to unit {self._units[alias]} for dimension {self.name}"
+                )
         unit = _Unit(
             name,
             factor,
             offset,
+            aliases=aliases,
             converter=converter,
             inverse_converter=inverse_converter,
         )
-        self._units[name] = unit
+        self._units.update({a: unit for a in unit.aliases})
 
     def _run_conversion(self, value, converter):
         try:
@@ -184,10 +207,10 @@ class Variable(_NamedObject):
         self,
         name: str,  # case-sensitive main name for display, used as a strong alias
         dimension: Dimension,
-        strong_aliases: list[
+        strong_aliases: Collection[
             str
         ],  # case-sensitive aliases for attr access (Variable.Alias), also used for case-insensitive dictlike access
-        weak_aliases: list[
+        weak_aliases: Collection[
             str
         ],  # case-insensitive aliases for dictlike access (possible/typical column names)
     ):

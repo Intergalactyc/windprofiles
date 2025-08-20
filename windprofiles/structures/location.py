@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from windprofiles.lib.geo import local_gravity
 from windprofiles.data.gmaps import get_elevation, get_timezone
 from geopy.distance import geodesic
+from abc import ABC
 
 
 @dataclass
@@ -66,3 +67,14 @@ class Location:
         if self.is_unknown:
             return "UnknownLocation<>"
         return f"Location<latitude: {self.latitude}; longitude: {self.longitude}; elevation: {self.elevation}; timezone: {self.timezone}; local gravity: {self.g}"
+
+
+class LocalizedData(ABC):
+    def __init__(self, location: Location):
+        if not isinstance(location, Location):
+            raise TypeError("location must be a Location object")
+        self._location = location
+
+    @property
+    def location(self) -> Location:
+        return self._location

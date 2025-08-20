@@ -1,28 +1,19 @@
 import pandas as pd
 from collections.abc import Collection
-from windprofiles.structures.location import Location
-from windprofiles.structures.timeseries import TimeSeries
+from windprofiles.structures.location import Location, LocalizedData
+from windprofiles.structures.timeseries import TimeSeries, TimeSeriesCollection
+from windprofiles.quantities import Dimension
 
 
-class Boom:
-    def __init__(self, number: int, height: float):
+class Boom(TimeSeriesCollection):
+    def __init__(self, number: int, height: float, height_unit: str = "m"):
         self.number = number
         """Boom number, uniquely identifying the boom in the tower"""
-        self.height = height
-        """Height from base of tower"""
-        self._data: list[MetData] = []
-
-    @property
-    def data(self):
-        return self._data
+        self.height = Dimension.Height.convert_from(height, height_unit)
+        """Height from base of tower (converted to height default unit)"""
 
 
-class MetData(TimeSeries):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-
-class MetTower:
+class MetTower(LocalizedData):
     def __init__(self, location: Location, booms: Collection[Boom] = []):
         self._location = location
         self._booms = {boom.number: boom for boom in booms}
@@ -39,6 +30,8 @@ class MetTower:
         return self._booms.get(number)
 
 
-class WeatherStationData(TimeSeries):
-    def __init__(self, location: Location, data: pd.DataFrame):
-        pass
+class WeatherStation(TimeSeriesCollection, LocalizedData):
+    def __init__(self, location: Location, data: pd.DataFrame = None):
+        super().__init__(location=location, data=data)
+
+    # TODO: change how windprofiles.data things create WeatherStation
