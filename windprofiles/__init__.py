@@ -4,6 +4,7 @@ import os
 
 from windprofiles.structures.location import Location
 from windprofiles.structures.metdata import Boom, MetTower
+from windprofiles.structures.timeseries import TimeSeries
 
 # Expose data submodules as top-level modules (so one can e.g.
 # `import windprofiles.meteostat` rather than `import windprofiles.data.meteostat`)

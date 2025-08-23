@@ -51,6 +51,10 @@ _d_speed.register_unit(
     aliases=["feet/s", "ft/sec", "feet/sec", "feet per second", "fps"],
 )
 
+_d_timestamp = Dimension(
+    "Timestamp", [], None
+)  # Special dimension (only for use in Variable.Timestamp recognition)
+
 _d_time = Dimension(
     "Time",
     [],

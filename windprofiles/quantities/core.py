@@ -201,6 +201,10 @@ class Dimension(_NamedObject):
         unit = self._get_unit(to_unit)
         return self._run_conversion(value, unit.inverse_converter)
 
+    @property
+    def default_unit(self):
+        return self._default_unit
+
 
 class Variable(_NamedObject):
     def __init__(

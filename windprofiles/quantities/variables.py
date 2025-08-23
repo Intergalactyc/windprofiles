@@ -3,6 +3,10 @@ from windprofiles.quantities.structures import (
     Variable,
 )
 
+_v_timestamp = Variable(
+    "Timestamp", Dimension.Timestamp, ["Datetime"], ["time"]
+)
+
 _v_temperature = Variable(
     "Temperature",
     Dimension.Temperature,
