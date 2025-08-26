@@ -5,3 +5,6 @@ platformdirs
 meteostat
 pre-commit
 geopy
+rasterio
+shapely
+pyproj

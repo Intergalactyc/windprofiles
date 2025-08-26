@@ -1,12 +1,12 @@
 from datetime import datetime
-from windprofiles.structures.location import Location
-from windprofiles.structures.metdata import WeatherStationData
+from windprofiles.utilities.location import Location
 from meteostat import Stations, Hourly, Daily, Monthly
+from pandas import DataFrame
 
 
 def get_weather_data(
     location: Location, period: tuple[datetime, datetime], frequency="hourly"
-) -> WeatherStationData:
+) -> DataFrame:
     start, end = period
     if end <= start:
         raise ValueError("end timestamp must be after start timestamp")
@@ -73,25 +73,26 @@ def get_weather_data(
                 f"Frequency '{frequency}' is invalid (must be 'hourly', 'daily', or 'monthly')"
             )
     station = station.iloc[0]
-    return WeatherStation(
-        df=data,
-        station_wmo_id=station.get("wmo"),
-        station_icao_id=station.get("icao"),
-        station_name=station.get("name"),
-        units={
-            "t": "C",
-            "prcp": "mm",
-            "snow": "mm",
-            "p": "hPa",
-            "ws": "km/h",
-            "wd": "CW-N",
-            "rh": "%",
-        },
-        timezone="UTC",
-        location=Location(
-            latitude=station["latitude"],
-            longitude=station["longitude"],
-            elevation=station["elevation"],
-            timezone=station["timezone"],
-        ),
-    )
+    return data
+    # return WeatherStation(
+    #     df=data,
+    #     station_wmo_id=station.get("wmo"),
+    #     station_icao_id=station.get("icao"),
+    #     station_name=station.get("name"),
+    #     units={
+    #         "t": "C",
+    #         "prcp": "mm",
+    #         "snow": "mm",
+    #         "p": "hPa",
+    #         "ws": "km/h",
+    #         "wd": "CW-N",
+    #         "rh": "%",
+    #     },
+    #     timezone="UTC",
+    #     location=Location(
+    #         latitude=station["latitude"],
+    #         longitude=station["longitude"],
+    #         elevation=station["elevation"],
+    #         timezone=station["timezone"],
+    #     ),
+    # )

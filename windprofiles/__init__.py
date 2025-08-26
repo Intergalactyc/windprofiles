@@ -2,9 +2,8 @@
 
 import os
 
-from windprofiles.structures.location import Location
-from windprofiles.structures.metdata import Boom, MetTower
-from windprofiles.structures.timeseries import TimeSeries
+from windprofiles.utilities.location import Location
+from windprofiles.user.args import Parser
 
 # Expose data submodules as top-level modules (so one can e.g.
 # `import windprofiles.meteostat` rather than `import windprofiles.data.meteostat`)
@@ -13,4 +12,4 @@ from windprofiles.data import meteostat, gmaps
 
 __version__ = "0.0.1"
 
-__all__ = ["Location", "Boom", "MetTower", "meteostat", "gmaps"]
+__all__ = ["Location", "Parser", "meteostat", "gmaps"]
