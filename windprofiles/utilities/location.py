@@ -22,6 +22,8 @@ class Location:
     is_unknown: bool = False
 
     def __post_init__(self):
+        if self.latitude is None and self.longitude is None:
+            self.is_unknown = True
         if self.is_unknown:
             if self.elevation is None:
                 self.elevation = 0.0
@@ -59,6 +61,24 @@ class Location:
     ) -> float:
         """Returns: distance between locations in meters"""
         return geodesic(first.coords, second.coords).m
+
+    def to_dict(self):
+        if self.is_unknown:
+            return {}
+        else:
+            return {
+                "latitude": self.latitude,
+                "longitude": self.longitude,
+                "elevation": self.elevation,
+                "timezone": self.timezone,
+                "is_unknown": self.is_unknown,
+            }
+
+    @classmethod
+    def from_dict(cls, value):
+        if value:
+            return cls(**value)
+        return cls.unknown()
 
     def _distance(self, other: Location, *args, **kwargs) -> float:
         return Location.distance(self, other, *args, **kwargs)

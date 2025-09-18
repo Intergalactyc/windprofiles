@@ -5,6 +5,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument(
     "--set-google-maps-api-key",
     default=None,
+    metavar="KEY",
     help="Set value of Google Maps API key (for use in elevation and timezone requests)",
 )
 parser.add_argument(

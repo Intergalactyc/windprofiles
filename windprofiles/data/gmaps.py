@@ -8,7 +8,7 @@ def get_elevation(lat, lon):
     apikey = get_api_key("gmaps")
     if apikey is None:
         raise APIException(
-            "No Google Maps API key found. Use `python -m windprofiles config --set-google-maps-api-key` to configure."
+            "No Google Maps API key found. Use `python -m windprofiles --set-google-maps-api-key` to configure."
         )
     url = "https://maps.googleapis.com/maps/api/elevation/json"
     results = urlopen_with_cache(
