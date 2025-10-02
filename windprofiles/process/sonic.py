@@ -6,6 +6,8 @@ import windprofiles.lib.polar as polar
 from tqdm import tqdm
 import signal
 
+pd.options.mode.chained_assignment = None
+
 
 def _init():
     signal.signal(signal.SIGINT, signal.SIG_IGN)
@@ -67,16 +69,11 @@ def analyze_directory(
         pool.close()
     finally:
         pool.join()
-    print(f"Completed analysis of directory {path}")
     df = pd.DataFrame(results)
     if index is not None and index in df.columns:
         df.set_index(index, inplace=True)
         df.sort_index(ascending=True)
     return df
-
-
-# def compute_fluxes(df: pd.DataFrame, booms: list[int]) -> pd.DataFrame:
-#     # u', v', w', u'v', u'w'
 
 
 def get_stats(
@@ -100,6 +97,8 @@ def get_stats(
         if ctype == "wd":
             if stat == np.mean:
                 result[result_col] = polar.unit_average_direction(df[col])
+            elif stat == np.std:
+                result[result_col] = polar.directional_rms(df[col])
             else:
                 result[result_col] = pd.NA
         else:
