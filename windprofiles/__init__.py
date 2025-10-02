@@ -1,8 +1,12 @@
 # ruff: noqa: E402
 
 import os
-
 from windprofiles.utilities.location import Location
+from windprofiles.utilities.classify import (
+    TerrainClassifier,
+    StabilityClassifier,
+    CoordinateRegion,
+)
 from windprofiles.user.args import Parser
 
 # Expose data submodules as top-level modules (so one can e.g.
@@ -12,4 +16,12 @@ from windprofiles.data import meteostat, gmaps
 
 __version__ = "0.0.1"
 
-__all__ = ["Location", "Parser", "meteostat", "gmaps"]
+__all__ = [
+    "TerrainClassifier",
+    "StabilityClassifier",
+    "CoordinateRegion",
+    "Location",
+    "Parser",
+    "meteostat",
+    "gmaps",
+]
