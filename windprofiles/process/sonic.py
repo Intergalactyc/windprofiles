@@ -4,6 +4,11 @@ from multiprocessing import Pool
 import os
 import windprofiles.lib.polar as polar
 from tqdm import tqdm
+import signal
+
+
+def _init():
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
 
 
 def analyze_directory(
@@ -17,6 +22,7 @@ def analyze_directory(
     **kwargs,
 ) -> pd.DataFrame:
     # analysis should be a function which takes a single arg (to unpack as `filepath, {rules (if not None)}, <kwargs>`) and returns a dict
+
     dir_path = os.path.abspath(path)
     if rules is None:
         if len(kwargs) == 0:
@@ -40,15 +46,27 @@ def analyze_directory(
     if progress:
         pbar = tqdm(total=len(directory))
 
-    pool = Pool(processes=nproc)
+    pool = Pool(processes=nproc, initializer=_init)
     results = []
-    for res in pool.imap(analysis, directory):
-        results.append(res)
-        if pbar:
-            pbar.update()
-            pbar.refresh()
-    pool.close()
-    pool.join()
+    try:
+        for res in pool.imap(analysis, directory):
+            if isinstance(res, list):
+                results += res
+            elif isinstance(res, dict):
+                results.append(res)
+            else:
+                raise TypeError(
+                    f"Unrecognized analysis result type {type(res)}"
+                )
+            if pbar:
+                pbar.update()
+                pbar.refresh()
+    except KeyboardInterrupt:
+        pool.terminate()
+    else:
+        pool.close()
+    finally:
+        pool.join()
     print(f"Completed analysis of directory {path}")
     df = pd.DataFrame(results)
     if index is not None and index in df.columns:
