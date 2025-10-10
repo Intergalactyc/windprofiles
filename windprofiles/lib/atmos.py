@@ -1,5 +1,6 @@
 import numpy as np
 from windprofiles.lib.polar import wind_components
+from windprofiles.lib.stats import KAPPA  # Von Karman constant
 
 STANDARD_GRAVITY = 9.80665  # standard gravitational parameter g in m/s^2
 REFERENCE_PRESSURE = 100.0  # reference pressure in kPa
@@ -10,6 +11,10 @@ R = (
 CP = 1004.68506  # specific heat capacity of air at constant pressure, J/(kg*K)
 R_CP = R / CP  # ~ 0.286
 T0 = 288.15  # Sea level standard temperature, K
+
+# coefficients for dimensionless wind shear computation
+ALPHA = 4.7
+BETA = 15.0
 
 
 def pressure_above_msl(value, meters_asl, gravity=STANDARD_GRAVITY):
@@ -139,3 +144,29 @@ def bulk_richardson_number(
     ri = gravity * delta_vpt * delta_z / (vpt_avg * shear_term)
 
     return ri
+
+
+def obukhov_length(u_star, vpt, vpt_flux, gravity=STANDARD_GRAVITY):
+    return -(u_star**3) * vpt / (KAPPA * gravity * vpt_flux)
+
+
+# def phi(z_over_L):
+#     # Dimensionless wind shear function
+#     if z_over_L >= 0: # stable
+#         # case z/L == 0 is neutral, returns 1 in either formula
+#         return 1 + ALPHA * z_over_L
+#     # otherwise, unstable
+#     return (1 - BETA * z_over_L)**(-1/4)
+
+
+# def wind_gradient(u_star, L, z):
+#     # L should be Obukhov length
+#     # uses Businger-Dyer relationship to estimate the vertical gradient of horizontal wind speed, du/dz
+#     # assume u is aligned with the mean horizontal wind direction
+#     return u_star / (KAPPA * z) * phi(z / L)
+
+
+# def flux_richardson_number(u_star, momt_flux, vpt, vpt_flux, L, g=STANDARD_GRAVITY):
+#     windgrad = wind_gradient(u_star, vpt, vpt_flux)
+#     Rif = (g / vpt) * vpt_flux / (momt_flux * windgrad)
+#     return Rif

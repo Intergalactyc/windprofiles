@@ -3,7 +3,9 @@ import numpy as np
 from scipy.optimize import curve_fit
 import scipy.stats as st
 import pandas as pd
+from collections.abc import Iterable
 
+from tqdm import tqdm
 
 TRANSFORMS = {
     "linear": (lambda x: x),
@@ -191,3 +193,11 @@ def get_correlations(df: pd.DataFrame, which: list = None) -> pd.DataFrame:
             corrs.iloc[i, j] = cor12
             corrs.iloc[j, i] = cor12
     return corrs
+
+
+def autocorrelations(s: pd.Series, lags: Iterable) -> pd.Series:
+    Raa = []
+    for lag in tqdm(lags):
+        autocorr = s.autocorr(lag=lag)
+        Raa.append(autocorr)
+    return pd.Series(data=Raa)
