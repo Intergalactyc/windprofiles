@@ -45,14 +45,40 @@ def saturation_vapor_pressure(temperature, method="tetens"):
         )
 
 
+def water_partial_pressure(relative_humidity, sat_vapor_pressure):
+    """
+    Partial pressure of water (e = RH * e_s)
+    """
+    return relative_humidity * sat_vapor_pressure
+
+
+actual_vapor_pressure = water_partial_pressure  # alias
+
+
 def water_air_mixing_ratio(actual_vapor_pressure, barometric_air_pressure):
     """
-    Dimensionless mixing ratio of water:air given two pressures of the same units.
+    Dimensionless mixing ratio of water:air (mass of vapor / mass of dry air) given two pressures of the same units.
     """
     return (
         WATER_AIR_MWR
         * actual_vapor_pressure
         / (barometric_air_pressure - actual_vapor_pressure)
+    )
+
+
+def specific_humidity(mixing_ratio):
+    """
+    Specific humidity (mass of vapor / total air mass = mass of vapor / (mass of dry air + mass of vapor)) given mixing ratio.
+    """
+    return mixing_ratio / (1 + mixing_ratio)
+
+
+def virtual_temperature(temperature, mixing_ratio):
+    """
+    Virtual temperature in K, from temperature in K and water:air mixing ratio
+    """
+    return (
+        temperature * (1 + (mixing_ratio / WATER_AIR_MWR)) / (1 + mixing_ratio)
     )
 
 
@@ -79,7 +105,17 @@ def virtual_potential_temperature(
         potential_temperature
         * (1 + (mixing_ratio / WATER_AIR_MWR))
         / (1 + mixing_ratio)
-    )  # Was originally (mistakenly) using: (1 + (mixing_ratio / WATER_AIR_MWR)/(1 + mixing_ratio))
+    )
+
+
+def dewpoint_temperature(temperature, relative_humidity):
+    """
+    Given temperature in K and relative humidity decimal value, compute dewpoint temperature in K
+    """
+    # Currently using a rough approximation. A better approximation is the Magnus formula, not yet implemented here.
+    return temperature - 20 * (
+        1 - relative_humidity
+    )  # often seen as T - 0.2(100-RH), this is for RH in %
 
 
 def vpt_from_3(relative_humidity, barometric_air_pressure, temperature):
