@@ -79,7 +79,7 @@ def virtual_potential_temperature(
         potential_temperature
         * (1 + (mixing_ratio / WATER_AIR_MWR))
         / (1 + mixing_ratio)
-    )  # Was originally (mistakenly) using: (1 + (mixing_ratio / WATER_AIR_MWR)/(1 + mixing_ratio))
+    )
 
 
 def vpt_from_3(relative_humidity, barometric_air_pressure, temperature):
@@ -88,7 +88,9 @@ def vpt_from_3(relative_humidity, barometric_air_pressure, temperature):
         relative humidity in [0,1], air pressure in kPa, and temperature in K.
     """
     svp = saturation_vapor_pressure(temperature)  # saturation vapor pressure
-    avp = relative_humidity * svp  # actual vapor pressure
+    avp = (
+        relative_humidity * svp
+    )  # actual vapor pressure (water partial pressure)
     w = water_air_mixing_ratio(
         actual_vapor_pressure=avp,
         barometric_air_pressure=barometric_air_pressure,
