@@ -1,16 +1,16 @@
-from windprofiles.process.format import (
+from windprofiles.processing.format import (
     correct_directions,
     clean_formatting,
     rename_headers,
 )
-from windprofiles.process.qc import (
+from windprofiles.processing.qc import (
     remove_data,
     rolling_outlier_removal,
     flagged_removal,
     strip_missing_data,
 )
-from windprofiles.process.sampling import shadowing_merge, resample
-from windprofiles.process.units import (
+from windprofiles.processing.sampling import shadowing_merge, resample
+from windprofiles.processing.units import (
     convert_dataframe_units,
     convert_timezone,
 )
