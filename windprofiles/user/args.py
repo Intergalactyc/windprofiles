@@ -1,6 +1,7 @@
 import configparser
 import argparse
 import os
+import json
 
 
 class CustomParser:
@@ -9,6 +10,10 @@ class CustomParser:
             if not isinstance(k, str):
                 raise TypeError(
                     f"Invalid config structure top-level key {k} (type {type(k)}, must be str)"
+                )
+            if k == "args":
+                raise ValueError(
+                    "Config structure cannot have block (top-level key) named 'args'"
                 )
             if not isinstance(v, dict):
                 raise TypeError(
@@ -22,18 +27,20 @@ class CustomParser:
                 if (
                     not isinstance(vv, tuple)
                     or len(vv) != 3
-                    or not isinstance(vv[1], type)
-                    or vv[1] not in {str, int, float, list}
-                    or not isinstance(vv[2], bool)
-                    or not isinstance(vv[3], vv[1])
+                    or not isinstance(vv[0], type)
+                    or vv[0] not in {str, int, float, list, bool}
+                    or not isinstance(vv[1], bool)
+                    or not (
+                        isinstance(vv[2], vv[0]) or (vv[2] is None and vv[1])
+                    )
                 ):
                     raise TypeError(
-                        f"Invalid config structure bottom-level value corresponding to key {kk} (should be triple (type, required, default) with type in {{str, int, float, list}})"
+                        f"Invalid config structure bottom-level value corresponding to key {kk} (should be triple (type, required, default) with type in {{str, int, float, list, bool}})"
                     )
         self._config_structure = config_structure
         self.argparser = argparse.ArgumentParser()
-        self.argparser.add_argument("config", type=os.PathLike, metavar="PATH")
-        self.cfgparser = configparser.ConfigParser(allow_no_value=True)
+        self.argparser.add_argument("config", type=str, metavar="PATH")
+        self.cfgparser = configparser.ConfigParser(allow_no_value=False)
 
     @property
     def _cl_names(self):
@@ -44,9 +51,9 @@ class CustomParser:
     def add_config_block(self, name: str, overwrite: bool = False):
         if name in self._config_structure and not overwrite:
             raise KeyError(f"Block {name} already exists in config")
-        if name in self._cl_names:
-            raise KeyError(
-                f"Conflicting name {name} between command line and config file arguments"
+        if name == "args":
+            raise ValueError(
+                "Config structure cannot have block (top-level key) named 'args'"
             )
         self._config_structure[name] = {}
 
@@ -78,28 +85,43 @@ class CustomParser:
         args = self.argparser.parse_args()
         return vars(args)
 
-    def _parse_config(self, filepath):
+    def _get_from_parser(self, block, name, _type, required, default):
+        _FALLBACK = "!__NONE__!"
+        val = self.cfgparser.get(block, name, fallback=_FALLBACK)
+        if val == _FALLBACK:
+            if required:
+                raise ValueError(
+                    f"Did not receive required configuration argument {name} in block {block}"
+                )
+            val = default
+        else:
+            if _type is list:
+                val = json.loads(val)
+        val = _type(val)
+        if _type is str:
+            if val.startswith('"') and val.endswith('"'):
+                val = val[1:-1]
+        return val
+
+    def _parse_cfg(self, filepath):
         self.cfgparser.read(filepath)
         result = {
-            k: {kk: self._get_from_parser(vv) for kk, vv in v.items()}
+            k: {kk: self._get_from_parser(k, kk, *vv) for kk, vv in v.items()}
             for k, v in self._config_structure.items()
         }
         return result
 
     def add_argument(self, *args, **kwargs):
         self.argparser.add_argument(*args, **kwargs)
-        for n in self._cl_names:
-            if n in self._config_structure:
-                raise KeyError(
-                    f"Conflicting name {n} between command line and config file arguments"
-                )
 
     def parse(self):
+        result = {}
         args = self._parse_cl()
         config_path = args["config"]
         del args["config"]
-        args.update(self._parse_cfg(config_path))
-        return args
+        result["args"] = args
+        result.update(self._parse_cfg(config_path))
+        return result
 
 
 class Parser:

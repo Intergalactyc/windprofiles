@@ -7,7 +7,7 @@ from windprofiles.utilities.classify import (
     StabilityClassifier,
     CoordinateRegion,
 )
-from windprofiles.user.args import Parser
+from windprofiles.user.args import Parser, CustomParser
 
 # Expose data submodules as top-level modules (so one can e.g.
 # `import windprofiles.meteostat` rather than `import windprofiles.data.meteostat`)
