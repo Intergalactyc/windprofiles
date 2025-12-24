@@ -46,7 +46,7 @@ def mean_directions(df, booms, degrees: bool = True):
         uxavg = np.mean(ux)
         uyavg = np.mean(uy)
 
-        result[f"wd_{b}_mean"] = polar.polar_wind(uxavg, uyavg, degrees)[0]
+        result[f"wd_{b}_mean"] = polar.polar_wind(uxavg, uyavg, degrees)[1]
 
     return result
 
@@ -66,8 +66,10 @@ def align_to_directions(df, directions, degrees: bool = True):
         ux = df[f"u_{b}"]
         uy = df[f"v_{b}"]
 
-        ux_aligned = ux * np.cos(d) + uy * np.sin(d)
-        uy_aligned = -ux * np.sin(d) + uy * np.cos(d)
+        ux_aligned = ux * np.sin(d) + uy * np.cos(d)
+        uy_aligned = ux * np.cos(d) - uy * np.sin(d)
+        # ux_aligned = ux * np.cos(d) + uy * np.sin(d)
+        # uy_aligned = -ux * np.sin(d) + uy * np.cos(d)
 
         dfc[f"u_{b}"] = ux_aligned
         dfc[f"v_{b}"] = uy_aligned

@@ -1,8 +1,109 @@
 import configparser
 import argparse
+import os
+
+
+class CustomParser:
+    def __init__(self, config_structure: dict = {}):
+        for k, v in config_structure.items():
+            if not isinstance(k, str):
+                raise TypeError(
+                    f"Invalid config structure top-level key {k} (type {type(k)}, must be str)"
+                )
+            if not isinstance(v, dict):
+                raise TypeError(
+                    f"Invalid config structure top-level value corresponding to key {k} (type {type(v)}, must be dict)"
+                )
+            for kk, vv in v.items():
+                if not isinstance(kk, str):
+                    raise TypeError(
+                        f"Invalid config structure bottom-level key {kk} (type {type(kk)}), must be str"
+                    )
+                if (
+                    not isinstance(vv, tuple)
+                    or len(vv) != 3
+                    or not isinstance(vv[1], type)
+                    or vv[1] not in {str, int, float, list}
+                    or not isinstance(vv[2], bool)
+                    or not isinstance(vv[3], vv[1])
+                ):
+                    raise TypeError(
+                        f"Invalid config structure bottom-level value corresponding to key {kk} (should be triple (type, required, default) with type in {{str, int, float, list}})"
+                    )
+        self._config_structure = config_structure
+        self.argparser = argparse.ArgumentParser()
+        self.argparser.add_argument("config", type=os.PathLike, metavar="PATH")
+        self.cfgparser = configparser.ConfigParser(allow_no_value=True)
+
+    @property
+    def _cl_names(self):
+        return {
+            d for a in self.argparser._actions if (d := a.dest) != "config"
+        }
+
+    def add_config_block(self, name: str, overwrite: bool = False):
+        if name in self._config_structure and not overwrite:
+            raise KeyError(f"Block {name} already exists in config")
+        if name in self._cl_names:
+            raise KeyError(
+                f"Conflicting name {name} between command line and config file arguments"
+            )
+        self._config_structure[name] = {}
+
+    def add_config_item(
+        self,
+        block: str,
+        name: str,
+        type: type,
+        required: bool = False,
+        default=None,
+        *,
+        create_missing_block: bool = True,
+        overwrite: bool = False,
+    ):
+        if block not in self._config_structure:
+            if create_missing_block:
+                self.add_config_block(block)
+            else:
+                raise KeyError(f"Block {block} does not exist in config")
+        if name in self._config_structure[block] and not overwrite:
+            raise KeyError(f"{name} already exists in config block {block}")
+        if not required and default is None:
+            raise ValueError(
+                "For optional (not required) items, `default` must be specified"
+            )
+        self._config_structure[block][name] = (type, required, default)
+
+    def _parse_cl(self):
+        args = self.argparser.parse_args()
+        return vars(args)
+
+    def _parse_config(self, filepath):
+        self.cfgparser.read(filepath)
+        result = {
+            k: {kk: self._get_from_parser(vv) for kk, vv in v.items()}
+            for k, v in self._config_structure.items()
+        }
+        return result
+
+    def add_argument(self, *args, **kwargs):
+        self.argparser.add_argument(*args, **kwargs)
+        for n in self._cl_names:
+            if n in self._config_structure:
+                raise KeyError(
+                    f"Conflicting name {n} between command line and config file arguments"
+                )
+
+    def parse(self):
+        args = self._parse_cl()
+        config_path = args["config"]
+        del args["config"]
+        args.update(self._parse_cfg(config_path))
+        return args
 
 
 class Parser:
+    # old
     def __init__(
         self, paths: list = [], define: list = [], special: list = []
     ):
