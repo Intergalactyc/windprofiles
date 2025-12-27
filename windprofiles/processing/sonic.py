@@ -1,7 +1,7 @@
 import windprofiles.lib.polar as polar
-import windprofiles.lib.stats as stats
 import numpy as np
 import pandas as pd
+import scipy.integrate as spint
 
 
 def get_stats(
@@ -77,16 +77,37 @@ def align_to_directions(df, directions, degrees: bool = True):
     return dfc
 
 
-def compute_autocorrs(
-    df: pd.DataFrame, columns: list, maxlag: float = 0.5
-) -> pd.DataFrame:
-    num_lags = int(len(df) * maxlag)
-    lags = range(num_lags)
-    result = pd.DataFrame(index=lags)
-    for col in columns:
-        result[col] = stats.autocorrelations(df[col], lags=lags)
-    return result
+def integral_time_scale(
+    ac: pd.Series,
+    scale_factor: float = 1.0,
+    integration_method: str = "simpson",
+    cutoff_method: str = "e_folding",
+):
+    # typical index is a lag # index, rather than true time index;
+    # in this case a correction factor should be passed
+    INTEGRATION_METHODS = {
+        "simpson": spint.simpson,
+        "trapezoid": np.trapezoid,
+        "trapezoidal": np.trapezoid,
+    }
+    method = INTEGRATION_METHODS.get(integration_method.lower())
+    if method is None:
+        raise ValueError(f"Invalid integration method '{integration_method}'")
 
+    match cutoff_method.lower():
+        case "zero_crossing":
+            cutoff_threshold = 0.0
+        case "e_folding":
+            cutoff_threshold = 1 / np.e
+        case _:
+            raise ValueError(f"Invalid cutoff method '{cutoff_method}'")
 
-def integral_scales(autocorrs: pd.DataFrame):
-    pass
+    # cutoff_index is the integer index at which the cutoff threshold is first met
+    # will be -1 if no such crossing is detected
+    try:
+        cutoff_index = ac[ac <= cutoff_threshold].index[0]
+    except IndexError:
+        cutoff_index = -1
+    return scale_factor * method(
+        ac.iloc[:cutoff_index], ac.index[:cutoff_index]
+    )

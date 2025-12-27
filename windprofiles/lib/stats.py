@@ -195,9 +195,25 @@ def get_correlations(df: pd.DataFrame, which: list = None) -> pd.DataFrame:
     return corrs
 
 
-def autocorrelations(s: pd.Series, lags: Iterable) -> pd.Series:
+def autocorrelations(
+    s: pd.Series, lags: Iterable, progress_bar: bool = False
+) -> pd.Series:
+    # TODO: worth seeing if e.g. np.correlate is faster
     Raa = []
-    for lag in tqdm(lags):
+    iterable = tqdm(lags) if progress_bar else lags
+    for lag in iterable:
         autocorr = s.autocorr(lag=lag)
         Raa.append(autocorr)
     return pd.Series(data=Raa)
+
+
+def detrend(s: pd.Series, mode: str = "linear"):
+    match mode.lower():
+        case "constant":
+            not_nan = ~np.isnan(s)
+            m, b, _, _, _ = st.linregress(s.index[not_nan], s[not_nan])
+            return s - m * s.index - b
+        case "linear":
+            return s - s.mean()
+        case _:
+            raise ValueError(f"Mode {mode} not recognized")

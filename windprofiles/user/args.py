@@ -1,6 +1,5 @@
 import configparser
 import argparse
-import os
 import json
 
 
@@ -11,9 +10,9 @@ class CustomParser:
                 raise TypeError(
                     f"Invalid config structure top-level key {k} (type {type(k)}, must be str)"
                 )
-            if k == "args":
+            if k in {"args", "tag"}:
                 raise ValueError(
-                    "Config structure cannot have block (top-level key) named 'args'"
+                    "Config structure cannot have block (top-level key) named 'args' or 'tag'"
                 )
             if not isinstance(v, dict):
                 raise TypeError(
@@ -51,9 +50,9 @@ class CustomParser:
     def add_config_block(self, name: str, overwrite: bool = False):
         if name in self._config_structure and not overwrite:
             raise KeyError(f"Block {name} already exists in config")
-        if name == "args":
+        if name in {"args", "tag"}:
             raise ValueError(
-                "Config structure cannot have block (top-level key) named 'args'"
+                "Config structure cannot have block (top-level key) named 'args' or 'tag'"
             )
         self._config_structure[name] = {}
 
@@ -120,6 +119,9 @@ class CustomParser:
         config_path = args["config"]
         del args["config"]
         result["args"] = args
+        result["tag"] = (
+            str(config_path).split("/")[-1].split("\\")[-1].split(".")[0]
+        )
         result.update(self._parse_cfg(config_path))
         return result
 
