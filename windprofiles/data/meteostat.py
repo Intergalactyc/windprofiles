@@ -10,6 +10,8 @@ def get_weather_data(
     start, end = period
     if end <= start:
         raise ValueError("end timestamp must be after start timestamp")
+    if location.latitude is None or location.longitude is None:
+        raise ValueError("Location must have a latitude and longitude")
     station = Stations().nearby(location.latitude, location.longitude).fetch(1)
     match frequency:
         case "hourly":
