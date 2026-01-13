@@ -38,7 +38,7 @@ class CustomParser:
                     )
         self._config_structure = config_structure
         self.argparser = argparse.ArgumentParser()
-        self.argparser.add_argument("config", type=str, metavar="PATH")
+        self.argparser.add_argument("config", type=str, metavar="CONFIG_PATH")
         self.cfgparser = configparser.ConfigParser(allow_no_value=False)
 
     @property
