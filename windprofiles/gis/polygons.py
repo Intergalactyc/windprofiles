@@ -8,8 +8,8 @@ def circular_region(
     cy: float,
     radius: float,
     *,
-    sector_start: float = None,
-    sector_end: float = None,
+    sector_start: float|None = None,
+    sector_end: float|None = None,
     segments: int = 128,
 ) -> Polygon:
     """

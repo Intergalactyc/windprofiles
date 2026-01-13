@@ -1,6 +1,6 @@
 from datetime import datetime
 from windprofiles.utilities.location import Location
-from meteostat import Stations, Hourly, Daily, Monthly
+from meteostat import Stations, Hourly, Daily, Monthly # TODO: update to meteostat>=2.0.0 (API overhaul, these won't work)
 from pandas import DataFrame
 
 

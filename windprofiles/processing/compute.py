@@ -16,7 +16,7 @@ def strip_failures(
     df: pd.DataFrame, subset: list[str]
 ) -> tuple[pd.DataFrame, int]:
 
-    result = df.dropna(axis="rows", how="any", subset=subset)
+    result = df.dropna(axis="rows", how="any", subset=subset) # pyright: ignore[reportArgumentType]
 
     n_dropped = len(df) - len(result)
 
@@ -28,7 +28,7 @@ def virtual_potential_temperatures(
     booms: list[int],
     heights: list[float],
     *,
-    substitutions: dict[str:str] = None,
+    substitutions: dict[str,str] = {},
 ) -> pd.DataFrame:
     """
     Compute virtual potential temperatures at all given heights.
@@ -61,8 +61,8 @@ def virtual_potential_temperatures(
 def environmental_lapse_rate(
     df: pd.DataFrame,
     variable: str,
-    booms: list[int, int],
-    heights: list[float, float],
+    booms: list[int]|tuple[int],
+    heights: list[int|float]|tuple[int|float],
 ) -> pd.DataFrame:
     """
     Approximate environmental lapse rate of a variable between two heights.
@@ -103,8 +103,8 @@ def environmental_lapse_rate(
 
 def bulk_richardson_number(
     df: pd.DataFrame,
-    booms: list[int, int],
-    heights: list[float, float],
+    booms: list[int]|tuple[int],
+    heights: list[int|float]|tuple[int|float],
     *,
     components: bool = False,
     suffix: str = "",
@@ -173,7 +173,7 @@ def bulk_richardson_number(
 
 def veer(
     df: pd.DataFrame,
-    booms: list[int, int],
+    booms: list[int]|tuple[int],
     *,
     suffix: str = "",
     colname="veer",
@@ -206,8 +206,8 @@ def veer(
 def classifications(
     df: pd.DataFrame,
     *,
-    terrain_classifier: PolarClassifier | TerrainClassifier = None,
-    stability_classifier: SingleClassifier | StabilityClassifier = None,
+    terrain_classifier: PolarClassifier | TerrainClassifier | None = None,
+    stability_classifier: SingleClassifier | StabilityClassifier | None = None,
 ) -> pd.DataFrame:
     """
     Classify terrain and/or stability for each timestamp in a dataframe.
@@ -231,7 +231,7 @@ def power_law_fits(
     booms: list[int],
     heights: list[int],
     minimum_present: int = 2,
-    columns: list[str, str] = ["beta", "alpha"],
+    columns: list[str] = ["beta", "alpha"],
     suffix: str = "",
 ):
     """

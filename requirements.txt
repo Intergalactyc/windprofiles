@@ -2,7 +2,7 @@ numpy
 pandas
 pytest
 platformdirs
-meteostat
+meteostat<2.0.0
 pre-commit
 geopy
 rasterio

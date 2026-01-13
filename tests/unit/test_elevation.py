@@ -1,4 +1,4 @@
-from windprofiles.data.elevation import get_elevation
+from windprofiles.data.gmaps import get_elevation
 from pytest import approx, mark
 
 

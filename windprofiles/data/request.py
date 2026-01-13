@@ -42,7 +42,7 @@ def _add_to_request_cache(cache_key, value):
         json.dump(current, f)
 
 
-def urlopen_with_cache(request: str, parameters: Sequence = None):
+def urlopen_with_cache(request: str, parameters: Sequence|None = None):
     cache_key = (
         ";".join([str(p) for p in parameters]) if parameters else request
     )

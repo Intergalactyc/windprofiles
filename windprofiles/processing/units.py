@@ -178,7 +178,7 @@ def convert_timezone(
     df: pd.DataFrame, source_timezone: str, target_timezone: str
 ):
     result = df.copy()
-    result.index = df.index.tz_localize(source_timezone).tz_convert(
+    result.index = df.index.tz_localize(source_timezone).tz_convert( # type: ignore
         target_timezone
     )
     return result

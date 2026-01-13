@@ -175,16 +175,16 @@ def rcorrelation(df, col1, col2, transform=("linear", "linear")):
     tran_y = TRANSFORMS[transform[1]]
     dfr = df[~(np.isnan(tran_x(df[col1])) | np.isnan(tran_y(df[col2])))]
     cor = st.pearsonr(tran_x(dfr[col1]), tran_y(dfr[col2]))[0]
-    return float(cor)
+    return float(cor) # pyright: ignore[reportArgumentType]
 
 
-def get_correlations(df: pd.DataFrame, which: list = None) -> pd.DataFrame:
+def get_correlations(df: pd.DataFrame, which: list|None = None) -> pd.DataFrame:
     """
     Get correlation coefficients pairwise between a list of columns (will use all columns
     in dataframe if no list is specified)
     """
     if which is None:
-        which = df.columns
+        which = list(df.columns)
     corrs = pd.DataFrame(data=0.0, index=which, columns=which)
     for i, col1 in enumerate(which):
         corrs.iloc[i, i] = 1.0
@@ -209,11 +209,11 @@ def autocorrelations(
 
 def detrend(s: pd.Series, mode: str = "linear"):
     match mode.lower():
-        case "constant":
+        case "linear":
             not_nan = ~np.isnan(s)
             m, b, _, _, _ = st.linregress(s.index[not_nan], s[not_nan])
-            return s - m * s.index - b
-        case "linear":
+            return s - m * s.index - b # type: ignore # TODO: test
+        case "constant":
             return s - s.mean()
         case _:
             raise ValueError(f"Mode {mode} not recognized")

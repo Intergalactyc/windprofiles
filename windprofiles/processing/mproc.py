@@ -17,7 +17,7 @@ def analyze_directory(
     path: str | os.PathLike | list,
     analysis,
     logfile,
-    rules: dict = None,
+    rules: dict|None = None,
     nproc=1,
     index=None,
     limit=None,

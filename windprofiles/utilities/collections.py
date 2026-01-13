@@ -1,4 +1,4 @@
-from collections import MutableMapping, Mapping
+from collections.abc import MutableMapping, Mapping
 
 
 class CaseInsensitiveDict(MutableMapping):

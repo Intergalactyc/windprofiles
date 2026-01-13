@@ -27,7 +27,9 @@ def get_api_key(which: str) -> str:
     result = _read_keyring()
     match which:
         case "gmaps":
-            return result.get("gmaps_api_key")
+            return str(result.get("gmaps_api_key"))
+        case _:
+            raise ValueError(f"API key {which} unrecognized")
 
 
 def set_api_key(which: str, value: str):
