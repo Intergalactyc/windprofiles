@@ -22,7 +22,7 @@ def get_stats(
         if col_types is not None and ctype not in col_types:
             continue
         result_col = col + str(suffix)
-        if ctype == "wd":
+        if ctype in {"wd", "propwd"}:
             if stat == np.mean:
                 result[result_col] = polar.unit_average_direction(df[col])
             elif stat == np.std:
@@ -34,24 +34,28 @@ def get_stats(
     return result
 
 
-def mean_directions(df, booms, degrees: bool = True):
+def mean_directions(df, booms, prefix: str = "", degrees: bool = True):
     # u should be East, v should be North
 
     result = {}
 
     for b in booms:
-        ux = df[f"u_{b}"]
-        uy = df[f"v_{b}"]
+        ux = df[f"{prefix}u_{b}"]
+        uy = df[f"{prefix}v_{b}"]
 
         uxavg = np.mean(ux)
         uyavg = np.mean(uy)
 
-        result[f"wd_{b}_mean"] = polar.polar_wind(uxavg, uyavg, degrees)[1]
+        result[f"{prefix}wd_{b}_mean"] = polar.polar_wind(
+            uxavg, uyavg, degrees
+        )[1]
 
     return result
 
 
-def align_to_directions(df, directions, degrees: bool = True):
+def align_to_directions(
+    df, directions, prefix: str = "", degrees: bool = True
+):
     # Given vector-mean wind directions:
     # Convert wind components to streamwise coordinates - that is,
     # Geometrically align the u, v components of wind such that u is oriented
@@ -63,16 +67,16 @@ def align_to_directions(df, directions, degrees: bool = True):
 
     dfc = df.copy()
     for b, d in by_boom.items():
-        ux = df[f"u_{b}"]
-        uy = df[f"v_{b}"]
+        ux = df[f"{prefix}u_{b}"]
+        uy = df[f"{prefix}v_{b}"]
 
         ux_aligned = ux * np.sin(d) + uy * np.cos(d)
         uy_aligned = ux * np.cos(d) - uy * np.sin(d)
         # ux_aligned = ux * np.cos(d) + uy * np.sin(d)
         # uy_aligned = -ux * np.sin(d) + uy * np.cos(d)
 
-        dfc[f"u_{b}"] = ux_aligned
-        dfc[f"v_{b}"] = uy_aligned
+        dfc[f"{prefix}u_{b}"] = ux_aligned
+        dfc[f"{prefix}v_{b}"] = uy_aligned
 
     return dfc
 
