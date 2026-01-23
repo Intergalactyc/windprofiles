@@ -8,7 +8,6 @@ import numpy as np
 from warnings import warn
 from abc import ABC, abstractmethod
 from windprofiles.lib.polar import angular_distance
-from numbers import Number
 import geopy.distance as gdist
 
 
@@ -70,7 +69,7 @@ class CoordinateRegion:
 
     def classify_line(self, begin_lat, begin_long, end_lat, end_long):
         to_check = [(begin_lat, begin_long), (end_lat, end_long)]
-        while gdist.geodesic(to_check[0], to_check[1]) > self.radius:
+        while gdist.geodesic(to_check[0], to_check[1]) > self._radius:
             pass
 
 
@@ -79,7 +78,7 @@ class _TemplateClassifier(ABC):
     Classifier abstract base class
     """
 
-    def __init__(self, parameter: str = None, *, nanNA: bool = True):
+    def __init__(self, parameter: str|None=None, *, nanNA: bool = True):
         """
         `parameter` optionally sets the name of the parameter
             (for pd.DataFrame column selection) to classify based on
@@ -92,14 +91,14 @@ class _TemplateClassifier(ABC):
         self._nanNA = nanNA
 
     def _isNaN(self, value):
-        return isinstance(value, Number) and math.isnan(value)
+        return isinstance(value, (float, int)) and math.isnan(value)
 
     def _validate(self, value):
         """
         A very simple validation that tests whether a value is a numerical
         data type. Values of None and NaN fail.
         """
-        return isinstance(value, Number) and not math.isnan(value)
+        return isinstance(value, (float, int)) and not math.isnan(value)
 
     def set_other(self, new_name: str):
         """
@@ -108,7 +107,7 @@ class _TemplateClassifier(ABC):
         """
         self._classNames[-1] = new_name
 
-    def set_parameter(self, parameter: str = None):
+    def set_parameter(self, parameter: str|None = None):
         """
         Set classification parameter if one was not provided in __init__
             or for updating old one
@@ -146,7 +145,7 @@ class _TemplateClassifier(ABC):
         """
         pass
 
-    def classify(self, value: int | float) -> str:
+    def classify(self, value: int | float) -> str|None:
         """
         Classify a value as one of the classNames based on the given
         classification rules defined by calls to self.add_class
@@ -177,7 +176,7 @@ class _TemplateClassifier(ABC):
                     f"classify._TemplateClassifier.classify_rows: parameter {self._parameter} not found in columns of given pd.DataFrame"
                 )
             return df.apply(
-                lambda row: self.classify(row[self._parameter]), axis=1
+                lambda row: self.classify(row[self._parameter]), axis=1 # type: ignore
             ).astype("category")
         else:
             raise Exception(
@@ -200,15 +199,15 @@ class PolarClassifier(_TemplateClassifier):
     Directions assumed to be in degrees
     """
 
-    def __init__(self, parameter: str = None, nanNA: bool = True):
+    def __init__(self, parameter: str|None=None, nanNA: bool = True):
         super().__init__(parameter=parameter, nanNA=nanNA)
 
     def add_class(
         self,
         class_name: str,
         center: int | float,
-        radius: int | float = None,
-        width: int | float = None,
+        radius: int | float | None = None,
+        width: int | float | None = None,
         inclusive: bool = True,
     ):
 
@@ -220,8 +219,8 @@ class PolarClassifier(_TemplateClassifier):
             raise Exception(
                 "classify.PolarClassifier.add_class: Width or radius must be specified"
             )
-        if (isinstance(radius, Number) and radius < 0) or (
-            isinstance(width, Number) and width < 0
+        if (isinstance(radius, (float, int)) and radius < 0) or (
+            isinstance(width, (float, int)) and width < 0
         ):
             raise Exception(
                 "classify.PolarClassifier.add_class: Negative radius or width provided"
@@ -247,7 +246,7 @@ class SingleClassifier(_TemplateClassifier):
     Classify data based on a single real-valued parameter
     """
 
-    def __init__(self, parameter: str = None, nanNA: bool = True):
+    def __init__(self, parameter: str|None = None, nanNA: bool = True):
         super().__init__(parameter=parameter, nanNA=nanNA)
 
     def _parse_interval(self, interval):
@@ -280,7 +279,7 @@ class SingleClassifier(_TemplateClassifier):
                 leftV = float(split[0])
             except ValueError:
                 raise Exception(
-                    f"classify.SingleClassifier._parse_interval: invalid left bound '{leftV}'"
+                    f"classify.SingleClassifier._parse_interval: invalid left bound '{split[0]}'"
                 )
 
         if split[1].lower in [
@@ -299,7 +298,7 @@ class SingleClassifier(_TemplateClassifier):
                 rightV = float(split[1])
             except ValueError:
                 raise Exception(
-                    f"classify.SingleClassifier._parse_interval: invalid left bound '{leftV}'"
+                    f"classify.SingleClassifier._parse_interval: invalid right bound '{split[1]}'"
                 )
 
         left_bound = leftV if leftP == "(" else [leftV]
@@ -310,19 +309,18 @@ class SingleClassifier(_TemplateClassifier):
     def add_class(
         self,
         class_name: str,
-        interval: str = None,
+        interval: str|None = None,
         *,
-        left_inclusive: int | float = None,
-        left_exclusive: int | float = None,
-        right_inclusive: int | float = None,
-        right_exclusive: int | float = None,
+        left_inclusive: int | float | None = None,
+        left_exclusive: int | float | None = None,
+        right_inclusive: int | float | None = None,
+        right_exclusive: int | float | None = None,
     ):
         """
         Add a classification bin.
         Provide an interval string in standard open () closed [] format,
             or a valid combination of left and right inclusive/exclusive arguments.
-        Interval strings take precedence. Given values must be numeric
-            (instances of numbers.Number)
+        Interval strings take precedence. Given values must be numeric.
         """
         if interval:
             rule = self._parse_interval(interval)
@@ -367,10 +365,10 @@ class SingleClassifier(_TemplateClassifier):
         if type(left) is list and type(right) is list:
             return left[0] <= value <= right[0]
         if type(right) is list:
-            return left < value <= right[0]
+            return left < value <= right[0] # type: ignore
         if type(left) is list:
-            return left[0] <= value < right
-        return left < value < right
+            return left[0] <= value < right # type: ignore
+        return left < value < right # type: ignore
 
 
 # Future: add MultiClassifier which allows for classification
@@ -390,10 +388,10 @@ class TerrainClassifier(PolarClassifier):
         *,
         complexCenter: int | float,
         openCenter: int | float,
-        radius: int | float = None,
-        width: int | float = None,
-        directionCol: str = None,
-        boom: int = None,
+        radius: int | float | None = None,
+        width: int | float | None = None,
+        directionCol: str | None = None,
+        boom: int | None = None,
         inclusive: bool = True,
     ):
 
@@ -483,13 +481,13 @@ class TerrainClassifier(PolarClassifier):
         self._directionCol = parameter
         return super().set_parameter(parameter)
 
-    def get_boom(self) -> int:
+    def get_boom(self) -> int | None:
         """
         Get the boom that classification is based on
         """
         return self._boom
 
-    def get_boom_column(self) -> str:
+    def get_boom_column(self) -> str | None:
         """
         Get the classification column name
         """
@@ -498,7 +496,7 @@ class TerrainClassifier(PolarClassifier):
 
 class StabilityClassifier(SingleClassifier):
     def __init__(
-        self, parameter: str = None, classes: list[tuple[str, str]] = None
+        self, parameter: str|None = None, classes: list[tuple[str, str]]|None = None
     ):
         """
         Slightly easier setup for a stability-type SingleClassifer.
@@ -510,5 +508,6 @@ class StabilityClassifier(SingleClassifier):
                 "classify.StabilityClassifier: No valid classification parameter given, make sure to call object method set_parameter to add one"
             )
         super().__init__(parameter=parameter, nanNA=True)
-        for cName, cInterval in classes:
-            self.add_class(class_name=cName, interval=cInterval)
+        if classes is not None:
+            for cName, cInterval in classes:
+                self.add_class(class_name=cName, interval=cInterval)

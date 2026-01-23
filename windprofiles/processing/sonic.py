@@ -80,15 +80,19 @@ def align_to_directions(
 
     return dfc
 
-
+available_cutoff_methods = ["zerocrossing", "efolding", "efoldingtime", "threshold", "total"]
 def integral_time_scale(
     ac: pd.Series,
     scale_factor: float = 1.0,
     integration_method: str = "simpson",
-    cutoff_method: str = "e_folding",
-):
+    cutoff_method: str = "efolding",
+    threshold: float|None = None,
+) -> float:
     # typical index is a lag # index, rather than true time index;
     # in this case a correction factor should be passed
+    # (e.g. for lags at intervals of 0.05 s, use scale_factor=0.05)
+    # Note that "efoldingtime" is special: rather than integrating, it simply
+    # returns the time at which the 1/e threshold is met
     INTEGRATION_METHODS = {
         "simpson": spint.simpson,
         "trapezoid": np.trapezoid,
@@ -98,20 +102,33 @@ def integral_time_scale(
     if method is None:
         raise ValueError(f"Invalid integration method '{integration_method}'")
 
+    cutoff_index = 0
     match cutoff_method.lower():
-        case "zero_crossing":
+        case "zerocrossing": # threshold of 0
             cutoff_threshold = 0.0
-        case "e_folding":
+        case "efolding" | "efoldingtime": # threshold of 1/e
             cutoff_threshold = 1 / np.e
+        case "threshold": # use custom specified threshold
+            if threshold is None:
+                raise ValueError("To use threshold method, a value must be passed")
+            cutoff_threshold = threshold
+        case "total": # integrate over all lags
+            cutoff_index = -1
         case _:
             raise ValueError(f"Invalid cutoff method '{cutoff_method}'")
 
     # cutoff_index is the integer index at which the cutoff threshold is first met
     # will be -1 if no such crossing is detected
-    try:
-        cutoff_index = ac[ac <= cutoff_threshold].index[0]
-    except IndexError:
-        cutoff_index = -1
+    if cutoff_index == 0:
+        try:
+            cutoff_index = ac[ac <= cutoff_threshold].index[0]
+        except IndexError:
+            cutoff_index = -1
+        if cutoff_method.lower() == "efoldingtime": # special mode: no integration, just give folding time
+            if cutoff_index != -1:
+                return scale_factor * cutoff_index
+            else:
+                return scale_factor * ac.index[-1]
     return scale_factor * method(
         ac.iloc[:cutoff_index], ac.index[:cutoff_index]
     )

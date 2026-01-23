@@ -97,7 +97,7 @@ class CustomParser:
             if _type is list:
                 val = json.loads(val)
         val = _type(val)
-        if _type is str:
+        if isinstance(val, str):
             if val.startswith('"') and val.endswith('"'):
                 val = val[1:-1]
         return val
@@ -162,7 +162,7 @@ class Parser:
         )
         for s in self._define:
             sub = {k: v for k, v in self.cfgparser.items(s)}
-            result[s] = sub
+            result[s] = sub # pyright: ignore[reportArgumentType]
         other_sections = {}
         for s in self.cfgparser.sections():
             if s == "paths" or s in self._define:
@@ -174,7 +174,7 @@ class Parser:
                 else:
                     sub.append(k)
             other_sections[s] = sub
-        result["other"] = other_sections
+        result["other"] = other_sections # pyright: ignore[reportArgumentType]
         return result
 
     def add_argument(self, *args, **kwargs):

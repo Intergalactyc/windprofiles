@@ -36,7 +36,7 @@ def test_frame_discrepancy_by_row(
         and finding an error in the old shadowing-mean-computation function.
     """
     if df1.shape != df2.shape:
-        raise ("Mismatch in shapes")
+        raise Exception("Mismatch in shapes")
     caught_rows = []
     n_total = df1.shape[0]
     iterator = tqdm(range(n_total)) if progress else range(n_total)
@@ -66,7 +66,7 @@ def time_to_hours(dt: datetime.datetime):
 
 def get_monthly_breakdown(
     df: pd.DataFrame, column: str, ignore: list = []
-) -> tuple[pd.DataFrame]:
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Given a dataframe df with a datetime column 'time' as well as the name of a column
         of interest, returns the breakdown of the amount of entries with each value
@@ -77,7 +77,7 @@ def get_monthly_breakdown(
     breakdown = pd.DataFrame(index=MONTHS, columns=classes)
     proportions = breakdown.copy()
     for i, mon in enumerate(MONTHS, 1):
-        df_mon = df[df["time"].dt.month == i]
+        df_mon = df[df["time"].dt.month == i] # type: ignore
         total = len(df_mon)
         for cls in classes:
             df_cls = df_mon[df_mon[column] == cls]

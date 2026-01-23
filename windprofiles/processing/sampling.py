@@ -42,8 +42,8 @@ def shadowing_merge(df, speeds, directions, angles, width=30, drop_old=True):
         raw_deviations = (df[_dir] - _ang) % 360
         corr_deviations = raw_deviations.apply(lambda d: min(360 - d, d))
         u, v = polar.wind_components(df[_spd], df[_dir])
-        u.loc[corr_deviations < radius] = np.nan
-        v.loc[corr_deviations < radius] = np.nan
+        u[corr_deviations < radius] = np.nan # type: ignore
+        v[corr_deviations < radius] = np.nan # type: ignore
         uList.append(u)
         vList.append(v)
     # We want the mean(np.nan...) -> np.nan behavior and expect to see it sometimes, so we'll filter the error

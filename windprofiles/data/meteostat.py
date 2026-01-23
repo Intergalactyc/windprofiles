@@ -1,6 +1,6 @@
 from datetime import datetime
 from windprofiles.utilities.location import Location
-from meteostat import Stations, Hourly, Daily, Monthly
+from meteostat import Stations, Hourly, Daily, Monthly # TODO: update to meteostat>=2.0.0 (API overhaul, these won't work)
 from pandas import DataFrame
 
 
@@ -10,6 +10,8 @@ def get_weather_data(
     start, end = period
     if end <= start:
         raise ValueError("end timestamp must be after start timestamp")
+    if location.latitude is None or location.longitude is None:
+        raise ValueError("Location must have a latitude and longitude")
     station = Stations().nearby(location.latitude, location.longitude).fetch(1)
     match frequency:
         case "hourly":

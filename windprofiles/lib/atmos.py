@@ -40,7 +40,7 @@ def saturation_vapor_pressure(temperature, method="tetens"):
             17.2694 * (temperature - 273.15) / (temperature - 35.86)
         )
     else:
-        raise (
+        raise Exception(
             f"lib.atmos.saturation_vapor_pressure: Method {method} unrecognized."
         )
 
@@ -174,14 +174,14 @@ def bulk_richardson_number(
 
     shear_term = delta_u * delta_u + delta_v * delta_v
 
-    if shear_term == 0:
+    if shear_term == 0: # type: ignore
         return np.nan
 
     vpt_avg = (vpt_upper + vpt_lower) / 2
 
     ri = gravity * delta_vpt * delta_z / (vpt_avg * shear_term)
 
-    return ri
+    return ri # type: ignore
 
 
 def obukhov_length(u_star, vpt, vpt_flux, gravity=STANDARD_GRAVITY):

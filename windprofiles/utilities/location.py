@@ -8,13 +8,13 @@ from abc import ABC
 
 @dataclass
 class Location:
-    latitude: float
+    latitude: float|None
     """Latitude in degrees"""
-    longitude: float
+    longitude: float|None
     """Longitude in degrees"""
-    elevation: float = None
+    elevation: float|None = None
     """Elevation ASL in meters"""
-    timezone: str = None
+    timezone: str|None = None
     """
     Local timezone, in representation such as "US/Central" or "America/Los_Angeles"
     (may be used in Pandas' tz_localize/tz_convert where relevant)
@@ -44,7 +44,7 @@ class Location:
                     )
                 self.timezone = tz
             self.g = local_gravity(self.latitude, self.elevation)
-        self.distance = self._distance
+        self.distance = self._distance # type: ignore
 
     @property
     def coords(self):
@@ -58,6 +58,7 @@ class Location:
     def distance(
         first: Location,
         second: Location,
+        *args, **kwargs
     ) -> float:
         """Returns: distance between locations in meters"""
         return geodesic(first.coords, second.coords).m

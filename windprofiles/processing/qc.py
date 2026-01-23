@@ -4,7 +4,7 @@ import pandas as pd
 
 def remove_data(
     df: pd.DataFrame, periods: dict, silent: bool = False
-) -> pd.DataFrame:
+) -> tuple[pd.DataFrame, tuple[int, int]]:
     """
     Removes data within certain specified datetime intervals.
     Removal can be complete (specify 'ALL') or partial (specify
@@ -57,7 +57,7 @@ def remove_data(
 def rolling_outlier_removal(
     df: pd.DataFrame,
     window_size_minutes: int = 30,
-    window_size_observations: int = None,
+    window_size_observations: int|None = None,
     sigma: int = 5,
     column_types=["ws", "t", "p", "rh"],
     silent: bool = False,
@@ -85,10 +85,10 @@ def rolling_outlier_removal(
             threshold = sigma * rolling_std
             outliers = np.abs(result[column] - rolling_mean) > threshold
             if remove_if_any:
-                eliminations += result[outliers].shape[0]
+                eliminations += result[outliers].shape[0] # type: ignore
                 result = result[~outliers]
             else:
-                eliminations[column] = result[outliers].shape[0]
+                eliminations[column] = result[outliers].shape[0] # type: ignore
                 result.loc[outliers, column] = pd.NA
 
     return result, eliminations
@@ -145,8 +145,8 @@ def strip_missing_data(
     iterable = result.iterrows()
     for index, row in iterable:
         drop = False
-        for necessary in necessarys:
-            if pd.isna(row[necessary]):
+        for necessary in necessarys: # type: ignore # TODO: figure out why the type error
+            if pd.isna(row[necessary]): # type: ignore # TODO: figure out why the type error
                 drop = True
                 break
         count = 0

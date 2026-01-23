@@ -1,11 +1,10 @@
 import numpy as np
 import pandas as pd
-from numbers import Number
 
 
 def wind_components(
-    speed: Number | pd.Series, direction, degrees: bool = True
-):
+    speed: int|float|complex|pd.Series, direction: int|float|complex|pd.Series, degrees: bool = True
+) -> tuple[int|float|complex|pd.Series|np.ndarray, int|float|complex|pd.Series|np.ndarray]:
     """
     Given a wind speed and direction in degrees CW of N,
         return u, v (east, north) Cartesian components of wind.
@@ -15,15 +14,15 @@ def wind_components(
     direction_rad = np.deg2rad(direction) if degrees else direction
     u = speed * np.sin(direction_rad)
     v = speed * np.cos(direction_rad)
-    if isinstance(speed, Number):
+    if isinstance(speed, (int, float, complex)):
         if speed == 0:
             u = 0.0
             v = 0.0
     elif isinstance(speed, pd.Series):
-        u.loc[speed == 0] = 0.0
-        v.loc[speed == 0] = 0.0
+        u[speed == 0] = 0.0
+        v[speed == 0] = 0.0
     else:
-        raise (
+        raise Exception(
             f"windprofiles.lib.polar.wind_components - unknown speed array type {type(speed)}"
         )
     return u, v
@@ -51,7 +50,7 @@ def polar_average(magnitudes, directions, degrees: bool = True):
     if (type(magnitudes) not in [int, float]) and (
         len(magnitudes) != len(directions)
     ):
-        raise (
+        raise Exception(
             f"lib.polar.polar_average: mismatched lengths of magnitudes/directions ({len(magnitudes)/len(directions)})"
         )
 
