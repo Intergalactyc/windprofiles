@@ -100,7 +100,7 @@ def virtual_potential_temperature(
         but there isn't much reason to use it.
     """
     if approximate:
-        return potential_temperature * (1 + 0.61 * mixing_ratio)
+        return potential_temperature * (1 + 0.607 * mixing_ratio)
     return (
         potential_temperature
         * (1 + (mixing_ratio / WATER_AIR_MWR))
@@ -115,7 +115,7 @@ def dewpoint_temperature(temperature, relative_humidity):
     # Currently using a rough approximation. A better approximation is the Magnus formula, not yet implemented here.
     return temperature - 20 * (
         1 - relative_humidity
-    )  # often seen as T - 0.2(100-RH), this is for RH in %
+    )  # often seen as T - 0.2(100-RH), which is for RH in %
 
 
 def vpt_from_3(relative_humidity, barometric_air_pressure, temperature):
