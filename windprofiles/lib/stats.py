@@ -207,12 +207,14 @@ def autocorrelations(
     return pd.Series(data=Raa)
 
 
-def detrend(s: pd.Series, mode: str = "linear"):
+def detrend(s: pd.Series, mode: str = "linear", m = None, b = None):
+    # requires s be a series whose index is the independent variable over which s trends
     match mode.lower():
         case "linear":
-            not_nan = ~np.isnan(s)
-            m, b, _, _, _ = st.linregress(s.index[not_nan], s[not_nan])
-            return s - m * s.index - b # type: ignore # TODO: test
+            if m is None or b is None:
+                not_nan = ~np.isnan(s)
+                m, b, _, _, _ = st.linregress(s.index[not_nan], s[not_nan])
+            return s - m * s.index - b # type: ignore
         case "constant":
             return s - s.mean()
         case _:
