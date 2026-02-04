@@ -19,11 +19,10 @@ def analyze_directory(
     logfile,
     rules: dict|None = None,
     nproc=1,
-    index=None,
     limit=None,
     progress=False,
     **kwargs,
-) -> pd.DataFrame:
+) -> list:
     # analysis should be a function which takes a single arg (to unpack as `filepath, {rules (if not None)}, <kwargs>`) and returns a dict
 
     if isinstance(path, list):
@@ -57,21 +56,14 @@ def analyze_directory(
         initargs=(queue,),
         maxtasksperchild=3,
     )
+
     results = []
     for res in pool.imap(analysis, directory):
-        if isinstance(res, list):
-            results += res
-        elif isinstance(res, dict):
-            results.append(res)
-        else:
-            raise TypeError(f"Unrecognized analysis result type {type(res)}")
+        results.append(res)
         if pbar:
             pbar.update()
             pbar.refresh()
     pool.close()
     pool.join()
-    df = pd.DataFrame(results)
-    if index is not None and index in df.columns:
-        df.set_index(index, inplace=True)
-        df.sort_index(ascending=True)
-    return df
+
+    return results
