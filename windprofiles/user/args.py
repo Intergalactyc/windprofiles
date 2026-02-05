@@ -41,6 +41,10 @@ class CustomParser:
         self.argparser.add_argument("config", type=str, metavar="CONFIG_PATH")
         self.cfgparser = configparser.ConfigParser(allow_no_value=False)
 
+    def write_config(self, filepath):
+        with open(filepath, "w") as f:
+            self.cfgparser.write(f)
+
     @property
     def _cl_names(self):
         return {
