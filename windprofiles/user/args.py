@@ -1,7 +1,7 @@
 import configparser
 import argparse
 import json
-
+import os
 
 class CustomParser:
     def __init__(self, config_structure: dict = {}):
@@ -107,6 +107,8 @@ class CustomParser:
         return val
 
     def _parse_cfg(self, filepath):
+        if not os.path.exists(filepath):
+            raise OSError(f"Config file {filepath} not found!")
         self.cfgparser.read(filepath)
         result = {
             k: {kk: self._get_from_parser(k, kk, *vv) for kk, vv in v.items()}
