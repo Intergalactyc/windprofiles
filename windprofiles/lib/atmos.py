@@ -183,6 +183,8 @@ def bulk_richardson_number(
 
     return ri # type: ignore
 
+def friction_velocity(wu_covariance, wv_covariance):
+    return (wu_covariance*wu_covariance + wv_covariance*wv_covariance)**0.25
 
 def obukhov_length(u_star, vpt, vpt_flux, gravity=STANDARD_GRAVITY):
     return -(u_star**3) * vpt / (KAPPA * gravity * vpt_flux)
