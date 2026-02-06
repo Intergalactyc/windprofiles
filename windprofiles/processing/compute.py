@@ -16,7 +16,9 @@ def strip_failures(
     df: pd.DataFrame, subset: list[str]
 ) -> tuple[pd.DataFrame, int]:
 
-    result = df.dropna(axis="rows", how="any", subset=subset) # pyright: ignore[reportArgumentType]
+    result = df.dropna(
+        axis="rows", how="any", subset=subset
+    )  # pyright: ignore[reportArgumentType]
 
     n_dropped = len(df) - len(result)
 
@@ -28,7 +30,7 @@ def virtual_potential_temperatures(
     booms: list[int],
     heights: list[float],
     *,
-    substitutions: dict[str,str] = {},
+    substitutions: dict[str, str] = {},
 ) -> pd.DataFrame:
     """
     Compute virtual potential temperatures at all given heights.
@@ -61,8 +63,8 @@ def virtual_potential_temperatures(
 def environmental_lapse_rate(
     df: pd.DataFrame,
     variable: str,
-    booms: list[int]|tuple[int],
-    heights: list[int|float]|tuple[int|float],
+    booms: list[int] | tuple[int],
+    heights: list[int | float] | tuple[int | float],
 ) -> pd.DataFrame:
     """
     Approximate environmental lapse rate of a variable between two heights.
@@ -103,8 +105,8 @@ def environmental_lapse_rate(
 
 def bulk_richardson_number(
     df: pd.DataFrame,
-    booms: list[int]|tuple[int],
-    heights: list[int|float]|tuple[int|float],
+    booms: list[int] | tuple[int],
+    heights: list[int | float] | tuple[int | float],
     *,
     components: bool = False,
     suffix: str = "",
@@ -173,7 +175,7 @@ def bulk_richardson_number(
 
 def veer(
     df: pd.DataFrame,
-    booms: list[int]|tuple[int],
+    booms: list[int] | tuple[int],
     *,
     suffix: str = "",
     colname="veer",
@@ -233,6 +235,7 @@ def power_law_fits(
     minimum_present: int = 2,
     columns: list[str] = ["beta", "alpha"],
     suffix: str = "",
+    prefix: str = "",
 ):
     """
     Fit power law u(z) = A z ^ B to each timestamp in a dataframe.
@@ -254,7 +257,7 @@ def power_law_fits(
     result[["A_PRIMITIVE", "B_PRIMITIVE"]] = result.apply(
         lambda row: stats.power_fit(
             heights,
-            [row[f"ws_{b}{suffix}"] for b in booms],
+            [row[f"{prefix}ws_{b}{suffix}"] for b in booms],
             require=minimum_present,
         ),
         axis=1,
