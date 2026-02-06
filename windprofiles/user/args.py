@@ -90,7 +90,15 @@ class CustomParser:
 
     def _get_from_parser(self, block, name, _type, required, default):
         _FALLBACK = "!__NONE__!"
-        val = self.cfgparser.get(block, name, fallback=_FALLBACK)
+        if _type is bool:
+            getter = self.cfgparser.getboolean
+        elif _type is float:
+            getter = self.cfgparser.getfloat
+        elif _type is int:
+            getter = self.cfgparser.getint
+        else:
+            getter = self.cfgparser.get
+        val = getter(block, name, fallback=_FALLBACK)
         if val == _FALLBACK:
             if required:
                 raise ValueError(
@@ -99,8 +107,8 @@ class CustomParser:
             val = default
         else:
             if _type is list:
-                val = json.loads(val)
-        val = _type(val)
+                val = json.loads(val) # type: ignore
+        val = _type(val) # type: ignore
         if isinstance(val, str):
             if val.startswith('"') and val.endswith('"'):
                 val = val[1:-1]
