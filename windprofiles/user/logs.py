@@ -5,10 +5,19 @@ import time
 from multiprocessing import Queue
 import sys
 import traceback
+import warnings
 
 
 class CutelogJSONFormatter(logging.Formatter):
     """JSON formatter for Cutelog-compatible logs."""
+
+    BASE_KEYS = {
+        "created", "asctime", "name", "levelname", "levelno", "pathname",
+        "lineno", "msg", "process", "thread", "exc_info", "exc_text",
+        "stack_info", "msecs", "relativeCreated", "funcName", "module",
+        "filename", "processName", "threadName", "args", "taskName", "message"
+    }
+
 
     def format(self, record):
         log_obj = {
@@ -28,6 +37,10 @@ class CutelogJSONFormatter(logging.Formatter):
             log_obj["exc_text"] = "".join(
                 traceback.format_exception(*record.exc_info)
             )
+
+        for k, v in record.__dict__.items():
+            if k not in self.BASE_KEYS and not k.startswith("_"):
+                log_obj[k] = v
 
         return json.dumps(log_obj, ensure_ascii=False)
 
@@ -69,6 +82,24 @@ def log_listener(queue: Queue, logfile: str):
             traceback.print_exc(file=sys.stderr)
 
 
+def enable_warning_bridge():
+    log = logging.getLogger("MAIN")
+
+    def _showwarning(message, category, filename, lineno, file=None, line=None):
+        log.warning(
+            "python_warning",
+            extra={
+                "warning_message": str(message),
+                "warning_category": getattr(category, "__name__", str(category)),
+                "warning_filename": filename,
+                "warning_lineno": lineno,
+                "warning_line": line,
+            },
+        )
+
+    warnings.showwarning = _showwarning
+
+
 def configure_worker(queue: Queue):
     root = logging.getLogger()
     for h in list(root.handlers):
@@ -76,3 +107,4 @@ def configure_worker(queue: Queue):
     qh = logging.handlers.QueueHandler(queue)
     root.addHandler(qh)
     root.setLevel(logging.DEBUG)
+    enable_warning_bridge()
