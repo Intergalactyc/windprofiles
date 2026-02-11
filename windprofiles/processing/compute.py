@@ -229,9 +229,9 @@ def classifications(
 def power_law_fits(
     df: pd.DataFrame,
     booms: list[int],
-    heights: list[int],
+    heights: list[int|float],
     minimum_present: int = 2,
-    columns: list[str] = ["beta", "alpha"],
+    columns: list[str|None] = ["beta", "alpha"],
     suffix: str = "",
 ):
     """
