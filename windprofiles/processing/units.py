@@ -152,6 +152,11 @@ def convert_dataframe_units(df, from_units, gravity=atmos.STANDARD_GRAVITY):
         "ux": _convert_speed,
         "uy": _convert_speed,
         "uz": _convert_speed,
+        "propu" : _convert_speed,
+        "propv" : _convert_speed,
+        "propw" : _convert_speed,
+        "propwd" : _convert_direction,
+        "propws" : _convert_speed
     }
 
     for column in result.columns:
