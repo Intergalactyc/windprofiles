@@ -17,8 +17,8 @@ def strip_failures(
 ) -> tuple[pd.DataFrame, int]:
 
     result = df.dropna(
-        axis="rows", how="any", subset=subset
-    )  # pyright: ignore[reportArgumentType]
+        axis="rows", how="any", subset=subset # pyright: ignore[reportArgumentType]
+    )
 
     n_dropped = len(df) - len(result)
 
