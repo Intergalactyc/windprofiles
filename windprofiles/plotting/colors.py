@@ -2,7 +2,7 @@ import matplotlib.colors as mc
 import colorsys
 
 
-def change_luminosity(color, amount=1):
+def change_luminosity(color, amount:float=1.):
     """
     Multiplies the luminosity by the given amount.
     Values > 1 darken, < 1 lighten.
@@ -18,4 +18,4 @@ def change_luminosity(color, amount=1):
     except Exception:
         c = color
     c = colorsys.rgb_to_hls(*mc.to_rgb(c))
-    return colorsys.hls_to_rgb(c[0], 1 - amount * (1 - c[1]), c[2])
+    return colorsys.hls_to_rgb(c[0], 1. - amount * (1. - c[1]), c[2])
