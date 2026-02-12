@@ -28,7 +28,7 @@ def wind_components(
     return u, v
 
 
-def polar_wind(u, v, degrees: bool = True):
+def polar_wind(u, v, degrees: bool = True, flip: bool=False):
     """
     Given u, v (east, north) Cartesian components of wind,
         return wind speed and direction in degrees CW of N.
@@ -39,6 +39,9 @@ def polar_wind(u, v, degrees: bool = True):
         if degrees
         else np.arctan2(u, v) % 2 * np.pi
     )
+
+    if flip:
+        direction = (180-direction)%360
 
     return speed, direction
 
