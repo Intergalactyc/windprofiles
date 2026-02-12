@@ -194,6 +194,52 @@ def get_correlations(df: pd.DataFrame, which: list|None = None) -> pd.DataFrame:
             corrs.iloc[j, i] = cor12
     return corrs
 
+def cohens_kappa(a, b, c, d):
+    """
+    a: pos_pos
+    b: pos_neg
+    c: neg_pos
+    d: neg_neg
+    """
+    N = a + b + c + d
+    if N == 0:
+        return float('nan')
+
+    Po = (a + d) / N
+
+    pA_pos = (a + b) / N
+    pA_neg = (c + d) / N
+    pB_pos = (a + c) / N
+    pB_neg = (b + d) / N
+
+    Pe = pA_pos * pB_pos + pA_neg * pB_neg
+
+    if np.isclose(Pe, 1.):
+        return float('nan')
+    return (Po - Pe) / (1 - Pe)
+
+def sign_cohens_kappa(df, col1, col2):
+    a = len(df[(df[col1] > 0.) & (df[col2] > 0.)])
+    b = len(df[(df[col1] > 0.) & (df[col2] < 0.)])
+    c = len(df[(df[col1] < 0.) & (df[col2] > 0.)])
+    d = len(df[(df[col1] < 0.) & (df[col2] < 0.)])
+    return cohens_kappa(a, b, c, d)
+
+def get_kappas(df: pd.DataFrame, which: list|None = None) -> pd.DataFrame:
+    """
+    Get sign-agreement Cohen's kappa pairwise between a list of columns (will use all columns
+    in dataframe if no list is specified)
+    """
+    if which is None:
+        which = list(df.columns)
+    kapps = pd.DataFrame(data=0.0, index=which, columns=which)
+    for i, col1 in enumerate(which):
+        kapps.iloc[i, i] = 1.0
+        for j, col2 in enumerate(which[:i]):
+            k12 = sign_cohens_kappa(df, col1, col2)
+            kapps.iloc[i, j] = k12
+            kapps.iloc[j, i] = k12
+    return kapps
 
 def autocorrelations(
     s: pd.Series, lags: Iterable, progress_bar: bool = False
