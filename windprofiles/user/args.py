@@ -3,6 +3,7 @@ import argparse
 import json
 import os
 
+
 class CustomParser:
     def __init__(self, config_structure: dict = {}):
         for k, v in config_structure.items():
@@ -38,7 +39,13 @@ class CustomParser:
                     )
         self._config_structure = config_structure
         self.argparser = argparse.ArgumentParser()
-        self.argparser.add_argument("config", type=str, metavar="CONFIG_PATH")
+        self.argparser.add_argument(
+            "config",
+            type=str,
+            nargs="?",
+            default="__EMPTY__",
+            metavar="CONFIG_PATH",
+        )
         self.cfgparser = configparser.ConfigParser(allow_no_value=False)
 
     def write_config(self, filepath):
@@ -84,8 +91,8 @@ class CustomParser:
             )
         self._config_structure[block][name] = (type, required, default)
 
-    def _parse_cl(self):
-        args = self.argparser.parse_args()
+    def _parse_cl(self, arg_list: list | None = None):
+        args = self.argparser.parse_args(arg_list)
         return vars(args)
 
     def _get_from_parser(self, block, name, _type, required, default):
@@ -107,8 +114,8 @@ class CustomParser:
             val = default
         else:
             if _type is list:
-                val = json.loads(val) # type: ignore
-        val = _type(val) # type: ignore
+                val = json.loads(val)  # type: ignore
+        val = _type(val)  # type: ignore
         if isinstance(val, str):
             if val.startswith('"') and val.endswith('"'):
                 val = val[1:-1]
@@ -127,10 +134,12 @@ class CustomParser:
     def add_argument(self, *args, **kwargs):
         self.argparser.add_argument(*args, **kwargs)
 
-    def parse(self):
+    def parse(self, from_file: str | None = None, cl_args: list | None = None):
         result = {}
-        args = self._parse_cl()
-        config_path = args["config"]
+        args = self._parse_cl(cl_args)
+        config_path = from_file or args["config"]
+        if config_path == "__EMPTY__":
+            raise ValueError("Config path must be specified!")
         del args["config"]
         result["args"] = args
         result["tag"] = (
@@ -176,7 +185,7 @@ class Parser:
         )
         for s in self._define:
             sub = {k: v for k, v in self.cfgparser.items(s)}
-            result[s] = sub # pyright: ignore[reportArgumentType]
+            result[s] = sub  # pyright: ignore[reportArgumentType]
         other_sections = {}
         for s in self.cfgparser.sections():
             if s == "paths" or s in self._define:
@@ -188,7 +197,7 @@ class Parser:
                 else:
                     sub.append(k)
             other_sections[s] = sub
-        result["other"] = other_sections # pyright: ignore[reportArgumentType]
+        result["other"] = other_sections  # pyright: ignore[reportArgumentType]
         return result
 
     def add_argument(self, *args, **kwargs):
