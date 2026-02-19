@@ -175,10 +175,12 @@ def rcorrelation(df, col1, col2, transform=("linear", "linear")):
     tran_y = TRANSFORMS[transform[1]]
     dfr = df[~(np.isnan(tran_x(df[col1])) | np.isnan(tran_y(df[col2])))]
     cor = st.pearsonr(tran_x(dfr[col1]), tran_y(dfr[col2]))[0]
-    return float(cor) # pyright: ignore[reportArgumentType]
+    return float(cor)  # pyright: ignore[reportArgumentType]
 
 
-def get_correlations(df: pd.DataFrame, which: list|None = None) -> pd.DataFrame:
+def get_correlations(
+    df: pd.DataFrame, which: list | None = None
+) -> pd.DataFrame:
     """
     Get correlation coefficients pairwise between a list of columns (will use all columns
     in dataframe if no list is specified)
@@ -194,6 +196,7 @@ def get_correlations(df: pd.DataFrame, which: list|None = None) -> pd.DataFrame:
             corrs.iloc[j, i] = cor12
     return corrs
 
+
 def cohens_kappa(a, b, c, d):
     """
     a: pos_pos
@@ -203,7 +206,7 @@ def cohens_kappa(a, b, c, d):
     """
     N = a + b + c + d
     if N == 0:
-        return float('nan')
+        return float("nan")
 
     Po = (a + d) / N
 
@@ -214,18 +217,20 @@ def cohens_kappa(a, b, c, d):
 
     Pe = pA_pos * pB_pos + pA_neg * pB_neg
 
-    if np.isclose(Pe, 1.):
-        return float('nan')
+    if np.isclose(Pe, 1.0):
+        return float("nan")
     return (Po - Pe) / (1 - Pe)
 
+
 def sign_cohens_kappa(df, col1, col2):
-    a = len(df[(df[col1] > 0.) & (df[col2] > 0.)])
-    b = len(df[(df[col1] > 0.) & (df[col2] < 0.)])
-    c = len(df[(df[col1] < 0.) & (df[col2] > 0.)])
-    d = len(df[(df[col1] < 0.) & (df[col2] < 0.)])
+    a = len(df[(df[col1] > 0.0) & (df[col2] > 0.0)])
+    b = len(df[(df[col1] > 0.0) & (df[col2] < 0.0)])
+    c = len(df[(df[col1] < 0.0) & (df[col2] > 0.0)])
+    d = len(df[(df[col1] < 0.0) & (df[col2] < 0.0)])
     return cohens_kappa(a, b, c, d)
 
-def get_kappas(df: pd.DataFrame, which: list|None = None) -> pd.DataFrame:
+
+def get_kappas(df: pd.DataFrame, which: list | None = None) -> pd.DataFrame:
     """
     Get sign-agreement Cohen's kappa pairwise between a list of columns (will use all columns
     in dataframe if no list is specified)
@@ -241,6 +246,24 @@ def get_kappas(df: pd.DataFrame, which: list|None = None) -> pd.DataFrame:
             kapps.iloc[j, i] = k12
     return kapps
 
+
+def get_spearman(df: pd.DataFrame, which: list | None = None) -> pd.DataFrame:
+    """
+    Get Spearman's rho values pairwise between a list of columns (will use all columns
+    in dataframe if no list is specified)
+    """
+    if which is None:
+        which = list(df.columns)
+    rhos = pd.DataFrame(data=0.0, index=which, columns=which)
+    for i, col1 in enumerate(which):
+        rhos.iloc[i, i] = 1.0
+        for j, col2 in enumerate(which[:i]):
+            k12 = st.spearmanr(df[col1], df[col2]).statistic
+            rhos.iloc[i, j] = k12
+            rhos.iloc[j, i] = k12
+    return rhos
+
+
 def autocorrelations(
     s: pd.Series, lags: Iterable, progress_bar: bool = False
 ) -> pd.Series:
@@ -253,14 +276,14 @@ def autocorrelations(
     return pd.Series(data=Raa)
 
 
-def detrend(s: pd.Series, mode: str = "linear", m = None, b = None):
+def detrend(s: pd.Series, mode: str = "linear", m=None, b=None):
     # requires s be a series whose index is the independent variable over which s trends
     match mode.lower():
         case "linear":
             if m is None or b is None:
                 not_nan = ~np.isnan(s)
                 m, b, _, _, _ = st.linregress(s.index[not_nan], s[not_nan])
-            return s - m * s.index - b # type: ignore
+            return s - m * s.index - b  # type: ignore
         case "constant":
             return s - s.mean()
         case _:
