@@ -34,7 +34,7 @@ def _convert_pressure(series, from_unit, gravity=atmos.STANDARD_GRAVITY):
             return series * 0.13332239
         case "inHg":
             return series * 3.38639
-        case "mBar":
+        case "mBar" | "mb":
             return series / 10.0
         case _:
             raise Exception(f"Unrecognized pressure unit {from_unit}")
@@ -152,11 +152,11 @@ def convert_dataframe_units(df, from_units, gravity=atmos.STANDARD_GRAVITY):
         "ux": _convert_speed,
         "uy": _convert_speed,
         "uz": _convert_speed,
-        "propu" : _convert_speed,
-        "propv" : _convert_speed,
-        "propw" : _convert_speed,
-        "propwd" : _convert_direction,
-        "propws" : _convert_speed
+        "propu": _convert_speed,
+        "propv": _convert_speed,
+        "propw": _convert_speed,
+        "propwd": _convert_direction,
+        "propws": _convert_speed,
     }
 
     for column in result.columns:
@@ -183,7 +183,7 @@ def convert_timezone(
     df: pd.DataFrame, source_timezone: str, target_timezone: str
 ):
     result = df.copy()
-    result.index = df.index.tz_localize(source_timezone).tz_convert( # type: ignore
+    result.index = df.index.tz_localize(source_timezone).tz_convert(  # type: ignore
         target_timezone
     )
     return result
