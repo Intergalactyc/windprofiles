@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from windprofiles.lib.polar import wind_components
 from windprofiles.lib.stats import KAPPA  # Von Karman constant
 
@@ -142,14 +143,14 @@ def vpt_from_3(relative_humidity, barometric_air_pressure, temperature):
 
 
 def bulk_richardson_number(
-    vpt_lower: float,
-    vpt_upper: float,
+    vpt_lower: float | pd.Series,
+    vpt_upper: float | pd.Series,
     height_lower: float,
     height_upper: float,
-    ws_lower: float,
-    ws_upper: float,
-    wd_lower: float,
-    wd_upper: float,
+    ws_lower: float | pd.Series,
+    ws_upper: float | pd.Series,
+    wd_lower: float | pd.Series,
+    wd_upper: float | pd.Series,
     *,
     components: bool = False,
     gravity=STANDARD_GRAVITY,
@@ -160,11 +161,9 @@ def bulk_richardson_number(
     delta_vpt = vpt_upper - vpt_lower
     delta_z = height_upper - height_lower
 
-    if components:  # instead of ws's pass u's, instead of wd's pass v's
-        u_lower = ws_lower
-        u_upper = ws_upper
-        v_lower = wd_lower
-        v_upper = wd_upper
+    if components:
+        u_lower, u_upper = ws_lower, ws_upper
+        v_lower, v_upper = wd_lower, wd_upper
     else:
         u_lower, v_lower = wind_components(ws_lower, wd_lower)
         u_upper, v_upper = wind_components(ws_upper, wd_upper)
@@ -172,21 +171,36 @@ def bulk_richardson_number(
     delta_u = u_upper - u_lower
     delta_v = v_upper - v_lower
 
-    shear_term = delta_u * delta_u + delta_v * delta_v
-
-    if shear_term == 0: # type: ignore
-        return np.nan
+    shear_sq = delta_u**2 + delta_v**2
 
     vpt_avg = (vpt_upper + vpt_lower) / 2
 
-    ri = gravity * delta_vpt * delta_z / (vpt_avg * shear_term)
+    ri = np.where(
+        shear_sq == 0,
+        np.nan,
+        (gravity * delta_vpt * delta_z) / (vpt_avg * shear_sq),
+    )
 
-    return ri # type: ignore
+    if isinstance(vpt_lower, pd.Series):
+        return pd.Series(ri, index=vpt_lower.index)
 
-def friction_velocity(wu_covariance, wv_covariance):
-    return (wu_covariance*wu_covariance + wv_covariance*wv_covariance)**0.25
+    return ri
 
-def obukhov_length(u_star, vpt, vpt_flux, gravity=STANDARD_GRAVITY):
+
+def friction_velocity(
+    wu_covariance: float | pd.Series, wv_covariance: float | pd.Series
+):
+    return (
+        wu_covariance * wu_covariance + wv_covariance * wv_covariance
+    ) ** 0.25
+
+
+def obukhov_length(
+    u_star: float | pd.Series,
+    vpt: float | pd.Series,
+    vpt_flux: float | pd.Series,
+    gravity=STANDARD_GRAVITY,
+):
     return -(u_star**3) * vpt / (KAPPA * gravity * vpt_flux)
 
 
