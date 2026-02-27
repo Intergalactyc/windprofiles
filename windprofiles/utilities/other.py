@@ -17,6 +17,25 @@ MONTHS = [
     "Dec",
 ]
 
+TIME_OPTIONS = [
+    "time",
+    "timestamp",
+    "datetime",
+    "TIMESTAMP",
+    "TimeStamp",
+    "Time",
+    "DateTime",
+    "DATETIME",
+    "Datetime",
+    "Timestamp",
+]
+
+
+def identify_time_column(df: pd.DataFrame) -> str:
+    for t in TIME_OPTIONS:
+        if t in df.columns:
+            return t
+
 
 def test_frame_discrepancy_by_row(
     df1, df2, silent=False, details=False, exact=False, progress=False
@@ -73,15 +92,40 @@ def get_monthly_breakdown(
         in that column, both as number (breakdown, first return value) and fraction of total
         (proportions, second return value)
     """
-    classes = [cls for cls in df[column].unique() if cls not in ignore]
+    time_col = identify_time_column(df)
+    classes = [cl for cl in df[column].unique() if cl not in ignore]
     breakdown = pd.DataFrame(index=MONTHS, columns=classes)
     proportions = breakdown.copy()
     for i, mon in enumerate(MONTHS, 1):
-        df_mon = df[df["time"].dt.month == i] # type: ignore
+        df_mon = df[df[time_col].dt.month == i]  # type: ignore
         total = len(df_mon)
-        for cls in classes:
-            df_cls = df_mon[df_mon[column] == cls]
-            count = len(df_cls)
-            breakdown.loc[mon, cls] = count
-            proportions.loc[mon, cls] = count / total
+        for cl in classes:
+            df_cl = df_mon[df_mon[column] == cl]
+            count = len(df_cl)
+            breakdown.loc[mon, cl] = count
+            proportions.loc[mon, cl] = count / total
+    return breakdown, proportions
+
+
+def get_hourly_breakdown(
+    df: pd.DataFrame, column: str, ignore: list = []
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Given a dataframe df with a datetime column 'time' as well as the name of a column
+        of interest, returns the breakdown of the amount of entries with each value
+        in that column, both as number (breakdown, first return value) and fraction of total
+        (proportions, second return value)
+    """
+    time_col = identify_time_column(df)
+    classes = [cl for cl in df[column].unique() if cl not in ignore]
+    breakdown = pd.DataFrame(index=range(1, 24), columns=classes)
+    proportions = breakdown.copy()
+    for hour in range(1, 24):
+        df_hr = df[df[time_col].dt.hour == hour]  # type: ignore
+        total = len(df_hr)
+        for cl in classes:
+            df_cl = df_hr[df_hr[column] == cl]
+            count = len(df_cl)
+            breakdown.loc[hour, cl] = count
+            proportions.loc[hour, cl] = count / total if total > 0 else pd.NA
     return breakdown, proportions
