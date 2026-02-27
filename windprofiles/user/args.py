@@ -2,6 +2,7 @@ import configparser
 import argparse
 import json
 import os
+import pathlib
 
 
 class CustomParser:
@@ -134,7 +135,7 @@ class CustomParser:
     def add_argument(self, *args, **kwargs):
         self.argparser.add_argument(*args, **kwargs)
 
-    def parse(self, from_file: str | None = None, cl_args: list | None = None):
+    def parse(self, from_file: str | None | pathlib.Path = None, cl_args: list | None = None):
         result = {}
         args = self._parse_cl(cl_args)
         config_path = from_file or args["config"]
