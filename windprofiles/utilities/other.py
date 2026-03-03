@@ -31,7 +31,7 @@ TIME_OPTIONS = [
 ]
 
 
-def identify_time_column(df: pd.DataFrame) -> str:
+def identify_time_column(df: pd.DataFrame) -> str: # pyright: ignore[reportReturnType]
     for t in TIME_OPTIONS:
         if t in df.columns:
             return t
