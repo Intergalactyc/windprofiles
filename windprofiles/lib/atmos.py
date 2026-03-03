@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from windprofiles.lib.polar import wind_components
+import windprofiles.lib.polar as polar
 from windprofiles.lib.stats import KAPPA  # Von Karman constant
 
 STANDARD_GRAVITY = 9.80665  # standard gravitational parameter g in m/s^2
@@ -12,8 +12,9 @@ R = (
 CP = 1004.68506  # specific heat capacity of air at constant pressure, J/(kg*K)
 R_CP = R / CP  # ~ 0.286
 T0 = 288.15  # Sea level standard temperature, K
+SURFACE_LAYER_CUTOFF = 150.0  # top of surface layer, m
 
-# coefficients for dimensionless wind shear computation
+# coefficients for Businger-Dyer dimensionless wind shear computation
 ALPHA = 4.7
 BETA = 15.0
 
@@ -165,8 +166,8 @@ def bulk_richardson_number(
         u_lower, u_upper = ws_lower, ws_upper
         v_lower, v_upper = wd_lower, wd_upper
     else:
-        u_lower, v_lower = wind_components(ws_lower, wd_lower)
-        u_upper, v_upper = wind_components(ws_upper, wd_upper)
+        u_lower, v_lower = polar.wind_components(ws_lower, wd_lower)
+        u_upper, v_upper = polar.wind_components(ws_upper, wd_upper)
 
     delta_u = u_upper - u_lower
     delta_v = v_upper - v_lower
@@ -204,23 +205,112 @@ def obukhov_length(
     return -(u_star**3) * vpt / (KAPPA * gravity * vpt_flux)
 
 
-# def phi(z_over_L):
-#     # Dimensionless wind shear function
-#     if z_over_L >= 0: # stable
-#         # case z/L == 0 is neutral, returns 1 in either formula
-#         return 1 + ALPHA * z_over_L
-#     # otherwise, unstable
-#     return (1 - BETA * z_over_L)**(-1/4)
+def businger_dyer_phi(z_over_L):
+    # Dimensionless wind shear function
+    if z_over_L >= 0:  # stable
+        # case z/L == 0 is neutral, returns 1 in either formula
+        return 1 + ALPHA * z_over_L
+    # otherwise, unstable
+    return (1 - BETA * z_over_L) ** (-1 / 4)
 
 
-# def wind_gradient(u_star, L, z):
-#     # L should be Obukhov length
-#     # uses Businger-Dyer relationship to estimate the vertical gradient of horizontal wind speed, du/dz
-#     # assume u is aligned with the mean horizontal wind direction
-#     return u_star / (KAPPA * z) * phi(z / L)
+def most_wind_gradient(u_star, L, z, method="businger dyer"):
+    # L should be Obukhov length
+    # uses MOST + Businger-Dyer relationship to estimate the vertical gradient of horizontal wind speed, du/dz
+    # assume u is aligned with the mean horizontal wind direction
+    match (m := method.lower().replace("-", " ").replace("_", " ")):
+        case "businger dyer":
+            phi = businger_dyer_phi
+        case _:
+            raise ValueError(
+                f"Wind shear function method '{method}' ('{m}') unrecognized"
+            )
+    return u_star / (KAPPA * z) * phi(z / L)
 
 
-# def flux_richardson_number(u_star, momt_flux, vpt, vpt_flux, L, g=STANDARD_GRAVITY):
-#     windgrad = wind_gradient(u_star, vpt, vpt_flux)
-#     Rif = (g / vpt) * vpt_flux / (momt_flux * windgrad)
-#     return Rif
+def _finite_difference(h1, h2, u_minus, u, u_plus):
+    num = (h1**2 * u_plus) - (h2**2 * u_minus) + (h2**2 - h1**2) * u
+    den = h1 * h2 * (h1 + h2)
+    return num / den
+
+
+def finite_difference_wind_gradient(
+    z_minus,
+    z,
+    z_plus,
+    u_minus,
+    u,
+    u_plus,
+    wd_minus=None,
+    wd=None,
+    wd_plus=None,
+    log_method: bool | str = "auto",
+    degrees: bool = True,
+):
+    # given mean wind speed at three heights, approximates the vertical gradient of horizontal wind speed, du/dz
+    # uses asymmetric central finite differencing
+    # if mean wind directions are provided, the result is a tuple of both u and v wind gradients, *where u is mean-wind aligned to the center height*
+    # if log_method is True, transforms into log space first
+    # if log_method is "auto", then if all z values given are below 150 m, True, else False
+    # assumes z_plus > z > z_minus
+    if log_method == "auto":
+        log_method = z_plus < SURFACE_LAYER_CUTOFF
+    if not isinstance(log_method, bool):
+        raise ValueError("log_method must be True, False, or 'auto'")
+
+    c_m = np.log(z_minus) if log_method else z_minus
+    c = np.log(z) if log_method else z
+    c_p = np.log(z_plus) if log_method else z_plus
+
+    h1 = c - c_m
+    h2 = c_p - c
+
+    if wd_minus is not None and wd is not None and wd_plus is not None:
+        if isinstance(wd, (float, int)):
+            d_m = polar.signed_angular_distance(wd_minus, wd, degrees=degrees)
+            d_p = polar.signed_angular_distance(wd_plus, wd, degrees=degrees)
+        else:  # pd.Series, np.array
+            d_m = polar.series_signed_angular_distance(
+                wd_minus, wd, degrees=degrees
+            )
+            d_p = polar.series_signed_angular_distance(
+                wd_plus, wd, degrees=degrees
+            )
+
+        # V is latitudinal wrt center height, U is longitudinal (mean wind dir)
+        V_m, U_m = polar.wind_components(u_minus, d_m, degrees=degrees)
+        V_p, U_p = polar.wind_components(u_plus, d_p, degrees=degrees)
+
+        dU_dz = _finite_difference(h1, h2, U_m, u, U_p)
+        dV_dz = _finite_difference(h1, h2, V_m, 0.0, V_p)
+
+        if log_method:
+            # if log_method: results are dUi/dlnz, convert to dUi/dz by dividing by z
+            dU_dz /= z
+            dV_dz /= z
+
+        return dU_dz, dV_dz
+    else:
+        derivative = _finite_difference(h1, h2, u_minus, u, u_plus)
+        # if log_method: result is du/dlnz, convert to du/dz by dividing by z
+        return (derivative / z) if log_method else derivative
+
+
+def flux_richardson_number(
+    vpt,
+    heat_flux,
+    u_momt_flux,
+    grad_u,
+    v_momt_flux=None,
+    grad_v=None,
+    gravity=STANDARD_GRAVITY,
+):
+    # heat_flux should be w'vpt' mean (m*K/s)
+    # u_momt_flux should be w'u' mean (m^2/s^2), v_momt_flux (w'v' mean) may also be provided
+    # vpt should be mean virtual potential temperature (K)
+    # grad_u should be local vertical gradient of mean wind speed, grad_v may also be provided
+    num = (gravity / vpt) * heat_flux
+    den = u_momt_flux * grad_u
+    if v_momt_flux and grad_v:
+        den += v_momt_flux * grad_v
+    return num / den
