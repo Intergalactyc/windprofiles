@@ -120,7 +120,7 @@ def get_hourly_breakdown(
     classes = [cl for cl in df[column].unique() if cl not in ignore]
     breakdown = pd.DataFrame(index=range(1, 24), columns=classes)
     proportions = breakdown.copy()
-    for hour in range(1, 24):
+    for hour in range(24):
         df_hr = df[df[time_col].dt.hour == hour]  # type: ignore
         total = len(df_hr)
         for cl in classes:
