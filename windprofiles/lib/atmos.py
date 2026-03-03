@@ -207,11 +207,9 @@ def obukhov_length(
 
 def businger_dyer_phi(z_over_L):
     # Dimensionless wind shear function
-    if z_over_L >= 0:  # stable
-        # case z/L == 0 is neutral, returns 1 in either formula
-        return 1 + ALPHA * z_over_L
-    # otherwise, unstable
-    return (1 - BETA * z_over_L) ** (-1 / 4)
+    phi_stable = 1 + ALPHA * z_over_L
+    phi_unstable = (1 - BETA * z_over_L) ** (-1 / 4)
+    return np.where(z_over_L >= 0, phi_stable, phi_unstable)
 
 
 def most_wind_gradient(u_star, L, z, method="businger dyer"):
@@ -234,10 +232,43 @@ def _finite_difference(h1, h2, u_minus, u, u_plus):
     return num / den
 
 
+def _oneway_finite_difference_wind_gradient(
+    z0: int | float,
+    z1: int | float,
+    u0,
+    u1,
+    wd0,
+    wd1,
+    log_method: bool,
+    degrees: bool,
+):
+    c0 = np.log(z0) if log_method else z0
+    c1 = np.log(z1) if log_method else z1
+    h = c1 - c0
+
+    if wd0 is not None and wd1 is not None:
+        if isinstance(wd0, (float, int)):
+            _d = polar.signed_angular_distance(wd1, wd0, degrees=degrees)
+        else:
+            _d = polar.series_signed_angular_distance(
+                wd1, wd0, degrees=degrees
+            )
+        V1, U1 = polar.wind_components(u1, _d, degrees=degrees)
+        dU_dz = (U1 - u0) / h
+        dV_dz = V1 / h
+        if log_method:
+            dU_dz /= z0
+            dV_dz /= z0
+        return dU_dz, dV_dz
+
+    derivative = (u1 - u0) / h
+    return (derivative / z0) if log_method else derivative
+
+
 def finite_difference_wind_gradient(
-    z_minus,
-    z,
-    z_plus,
+    z_minus: int | float,
+    z: int | float,
+    z_plus: int | float,
     u_minus,
     u,
     u_plus,
@@ -249,6 +280,7 @@ def finite_difference_wind_gradient(
 ):
     # given mean wind speed at three heights, approximates the vertical gradient of horizontal wind speed, du/dz
     # uses asymmetric central finite differencing
+    # if one of the other heights is the same as the central height, use one-direction finite differencing instead (forward/backward differencing, depending on order)
     # if mean wind directions are provided, the result is a tuple of both u and v wind gradients, *where u is mean-wind aligned to the center height*
     # if log_method is True, transforms into log space first
     # if log_method is "auto", then if all z values given are below 150 m, True, else False
@@ -257,11 +289,23 @@ def finite_difference_wind_gradient(
         log_method = z_plus < SURFACE_LAYER_CUTOFF
     if not isinstance(log_method, bool):
         raise ValueError("log_method must be True, False, or 'auto'")
+    if z == z_minus and z == z_plus:
+        raise ValueError("All three heights cannot be the same")
+
+    if z == z_minus or z == z_plus:  # handle forward/backward difference case
+        z0, u0, wd0 = z, u, wd
+        z1, u1, wd1 = (
+            (z_plus, u_plus, wd_plus)
+            if z == z_minus
+            else (z_minus, u_minus, wd_minus)
+        )
+        return _oneway_finite_difference_wind_gradient(
+            z0, z1, u0, u1, wd0, wd1, log_method=log_method, degrees=degrees
+        )
 
     c_m = np.log(z_minus) if log_method else z_minus
     c = np.log(z) if log_method else z
     c_p = np.log(z_plus) if log_method else z_plus
-
     h1 = c - c_m
     h2 = c_p - c
 
@@ -290,10 +334,10 @@ def finite_difference_wind_gradient(
             dV_dz /= z
 
         return dU_dz, dV_dz
-    else:
-        derivative = _finite_difference(h1, h2, u_minus, u, u_plus)
-        # if log_method: result is du/dlnz, convert to du/dz by dividing by z
-        return (derivative / z) if log_method else derivative
+
+    derivative = _finite_difference(h1, h2, u_minus, u, u_plus)
+    # if log_method: result is du/dlnz, convert to du/dz by dividing by z
+    return (derivative / z) if log_method else derivative
 
 
 def flux_richardson_number(
@@ -311,6 +355,6 @@ def flux_richardson_number(
     # grad_u should be local vertical gradient of mean wind speed, grad_v may also be provided
     num = (gravity / vpt) * heat_flux
     den = u_momt_flux * grad_u
-    if v_momt_flux and grad_v:
+    if v_momt_flux is not None and grad_v is not None:
         den += v_momt_flux * grad_v
     return num / den
