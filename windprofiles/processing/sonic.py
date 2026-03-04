@@ -2,6 +2,8 @@ import windprofiles.lib.polar as polar
 import numpy as np
 import pandas as pd
 import scipy.integrate as spint
+from scipy.signal import welch
+from scipy.optimize import curve_fit
 
 
 def get_stats(
@@ -80,13 +82,22 @@ def align_to_directions(
 
     return dfc
 
-available_cutoff_methods = ["zerocrossing", "efolding", "efoldingtime", "threshold", "total"]
+
+available_cutoff_methods = [
+    "zerocrossing",
+    "efolding",
+    "efoldingtime",
+    "threshold",
+    "total",
+]
+
+
 def integral_time_scale(
     ac: pd.Series,
     scale_factor: float = 1.0,
     integration_method: str = "simpson",
     cutoff_method: str = "efolding",
-    threshold: float|None = None,
+    threshold: float | None = None,
 ) -> float:
     # typical index is a lag # index, rather than true time index;
     # in this case a correction factor should be passed
@@ -104,15 +115,17 @@ def integral_time_scale(
 
     cutoff_index = 0
     match cutoff_method.lower():
-        case "zerocrossing": # threshold of 0
+        case "zerocrossing":  # threshold of 0
             cutoff_threshold = 0.0
-        case "efolding" | "efoldingtime": # threshold of 1/e
+        case "efolding" | "efoldingtime":  # threshold of 1/e
             cutoff_threshold = 1 / np.e
-        case "threshold": # use custom specified threshold
+        case "threshold":  # use custom specified threshold
             if threshold is None:
-                raise ValueError("To use threshold method, a value must be passed")
+                raise ValueError(
+                    "To use threshold method, a value must be passed"
+                )
             cutoff_threshold = threshold
-        case "total": # integrate over all lags
+        case "total":  # integrate over all lags
             cutoff_index = -1
         case _:
             raise ValueError(f"Invalid cutoff method '{cutoff_method}'")
@@ -124,7 +137,9 @@ def integral_time_scale(
             cutoff_index = ac[ac <= cutoff_threshold].index[0]
         except IndexError:
             cutoff_index = -1
-        if cutoff_method.lower() == "efoldingtime": # special mode: no integration, just give folding time
+        if (
+            cutoff_method.lower() == "efoldingtime"
+        ):  # special mode: no integration, just give folding time
             if cutoff_index != -1:
                 return scale_factor * cutoff_index
             else:
@@ -132,3 +147,64 @@ def integral_time_scale(
     return scale_factor * method(
         ac.iloc[:cutoff_index], ac.index[:cutoff_index]
     )
+
+
+def welch_psd(
+    s: pd.Series,
+    frequency: int | float,
+    nperseg: int,
+    freq_zero: bool = False,
+    max_freq: float | str | None = "nyquist",
+) -> pd.Series:
+    f, Pxx = welch(
+        s,
+        frequency,
+        window="hann",
+        nperseg=nperseg,
+        noverlap=nperseg // 2,
+        scaling="density",
+    )
+    psd = pd.Series(data=Pxx, index=f)
+
+    if max_freq == "half_nyquist":
+        max_freq = frequency / 4
+    elif max_freq == "nyquist":
+        max_freq = frequency / 2
+    if max_freq is not None:
+        psd = psd.loc[:max_freq]
+
+    if not freq_zero:
+        psd = psd.iloc[1:]
+
+    return psd
+
+
+def _kaimal_psd_model(f, X, sigma):
+    # Kaimal spectrum parameterized by time scale X = L/V_hub
+    # S(f) = 4 * sigma^2 * X / (1 + 6 * f * X)^(5/3)
+    num = 4 * (sigma**2) * X
+    den = (1 + 6 * f * X) ** (5 / 3)
+    return num / den
+
+
+def spectral_integral_time_scale(psd: pd.Series, sigma: float):
+    f = psd.index.values
+    y = psd.values
+
+    log_y = np.log10(y)
+
+    def log_model(f, X):
+        S = _kaimal_psd_model(f, X, sigma)
+        return np.log10(np.max(S, 1e-12))
+
+    try:
+        popt, _ = curve_fit(
+            log_model, f, log_y, p0=[15.0], bounds=(0.1, 600.0)
+        )
+
+        X_fit = popt[0]
+
+        return X_fit
+
+    except Exception:
+        return np.nan, np.nan, np.nan
