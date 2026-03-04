@@ -247,6 +247,21 @@ def get_kappas(df: pd.DataFrame, which: list | None = None) -> pd.DataFrame:
     return kapps
 
 
+def get_agreement_fractions(
+    df: pd.DataFrame, classifier, which: list | None = None
+) -> pd.DataFrame:
+    if which is None:
+        which = list(df.columns)
+    aggs = pd.DataFrame(data=0.0, index=which, columns=which)
+    for i, col1 in enumerate(which):
+        aggs.iloc[i, i] = 1.0
+        for j, col2 in enumerate(which[:i]):
+            a12 = sum(classifier(df[col1]) == classifier(df[col2])) / len(df)
+            aggs.iloc[i, j] = a12
+            aggs.iloc[j, i] = a12
+    return aggs
+
+
 def get_spearman(df: pd.DataFrame, which: list | None = None) -> pd.DataFrame:
     """
     Get Spearman's rho values pairwise between a list of columns (will use all columns
