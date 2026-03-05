@@ -4,6 +4,7 @@ import pandas as pd
 import scipy.integrate as spint
 from scipy.signal import welch
 from scipy.optimize import curve_fit
+from sklearn.metrics import r2_score
 
 
 def get_stats(
@@ -157,7 +158,7 @@ def welch_psd(
     max_freq: float | str | None = "nyquist",
 ) -> pd.Series:
     f, Pxx = welch(
-        s,
+        s.values,
         frequency,
         window="hann",
         nperseg=nperseg,
@@ -190,21 +191,20 @@ def _kaimal_psd_model(f, X, sigma):
 def spectral_integral_time_scale(psd: pd.Series, sigma: float):
     f = psd.index.values
     y = psd.values
-
     log_y = np.log10(y)
 
     def log_model(f, X):
         S = _kaimal_psd_model(f, X, sigma)
-        return np.log10(np.max(S, 1e-12))
+        return np.log10(np.maximum(S, 1e-12))
 
     try:
         popt, _ = curve_fit(
             log_model, f, log_y, p0=[15.0], bounds=(0.1, 600.0)
         )
-
         X_fit = popt[0]
-
-        return X_fit
-
-    except Exception:
-        return np.nan, np.nan, np.nan
+        y_pred_log = log_model(f, X_fit)
+        r2 = r2_score(log_y, y_pred_log)
+        return X_fit, r2
+    except Exception as e:
+        print(e)
+        return np.nan

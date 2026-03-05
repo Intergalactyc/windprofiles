@@ -10,3 +10,4 @@ shapely
 pyproj
 scipy
 tqdm
+scikit-learn
