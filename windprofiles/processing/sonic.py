@@ -188,7 +188,7 @@ def _kaimal_psd_model(f, X, sigma):
     return num / den
 
 
-def spectral_integral_time_scale(psd: pd.Series, sigma: float):
+def spectral_integral_time_scale(psd: pd.Series, sigma: float) -> tuple[float, float]:
     f = psd.index.values
     y = psd.values
     log_y = np.log10(y)
@@ -205,6 +205,5 @@ def spectral_integral_time_scale(psd: pd.Series, sigma: float):
         y_pred_log = log_model(f, X_fit)
         r2 = r2_score(log_y, y_pred_log)
         return X_fit, r2
-    except Exception as e:
-        print(e)
-        return np.nan
+    except Exception:
+        return np.nan, np.nan

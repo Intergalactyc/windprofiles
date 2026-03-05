@@ -155,7 +155,7 @@ def bulk_richardson_number(
     *,
     components: bool = False,
     gravity=STANDARD_GRAVITY,
-) -> float:
+) -> float | pd.Series:
     """
     Compute the bulk Richardson number Ri_bulk using data at two heights
     """
@@ -185,7 +185,7 @@ def bulk_richardson_number(
     if isinstance(vpt_lower, pd.Series):
         return pd.Series(ri, index=vpt_lower.index)
 
-    return ri
+    return ri # pyright: ignore[reportReturnType]
 
 
 def friction_velocity(
