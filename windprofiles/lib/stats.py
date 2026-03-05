@@ -45,6 +45,43 @@ def ls_linear_fit(xvals, yvals):
     return A, B
 
 
+def constrained_linear_fit(
+    xvals, yvals, a: float | None = None, b: float | None = None
+):
+    """
+    ls_linear_fit but with either a or b fixed
+    """
+    if a is None and b is None:
+        raise ValueError(
+            "Either a or b must be specified (for unconstrained, use log_fit)"
+        )
+    if a is not None and b is not None:
+        raise ValueError("Only one of a or b may be specified")
+
+    xvals = list(xvals)
+    if len(yvals) != len(xvals):
+        raise RuntimeError("Lists must be of equal size")
+    for x, y in zip(xvals, yvals):
+        if math.isnan(x) or math.isnan(y):
+            xvals.remove(x)
+            yvals.remove(y)
+    n = len(xvals)
+
+    if a is not None:  # a (intercept) given
+        if n == 0:
+            return a, 0.0
+        sum_x2 = sum(x * x for x in xvals)
+        sum_xdy = sum(xvals[i] * (yvals[i] - a) for i in range(n))
+        B = sum_xdy / sum_x2
+        return a, B
+
+    # otherwise, b (slope) given
+    if n == 0:
+        return 0.0, b
+    A = (sum(yvals) - b * sum(xvals)) / n
+    return A, b
+
+
 def power_fit(xvals, yvals, require=2):
     """
     Least squares fit to relationship y = a*x^b
@@ -68,7 +105,7 @@ def power_fit(xvals, yvals, require=2):
 def log_fit(xvals, yvals):
     """
     Least squares fit to relationship y = a + b*log(x)
-    Outputs a pair a,b describing fit
+    Outputs the pair a,b describing fit
     """
     xconsider = []
     yconsider = []
@@ -79,6 +116,23 @@ def log_fit(xvals, yvals):
             xconsider.append(x)
             yconsider.append(y)
     return ls_linear_fit(np.log(xconsider), yconsider)
+
+
+def constrained_log_fit(
+    xvals, yvals, a: float | None = None, b: float | None = None
+):
+    """
+    log_fit but with either a or b fixed
+    """
+    xconsider = []
+    yconsider = []
+    for x, y in zip(xvals, yvals):
+        if not (math.isnan(x) or math.isnan(y)):
+            if x <= 0:
+                raise ValueError("Cannot do log fit with nonpositive x values")
+            xconsider.append(x)
+            yconsider.append(y)
+    return constrained_linear_fit(np.log(xconsider), yconsider, a=a, b=b)
 
 
 def neutral_loglaw_fit(zvals, uvals, displacement: float = 0.0):
@@ -98,6 +152,23 @@ def neutral_loglaw_fit(zvals, uvals, displacement: float = 0.0):
     ustar = B * KAPPA
     z0 = np.exp(-A / B)
     return ustar, z0
+
+
+def constrained_neutral_loglaw_fit(
+    zvals, uvals, ustar: float, displacement: float = 0.0
+):
+    """
+    neutral_loglaw_fit, but ustar is fixed
+    """
+    zconsider = []
+    uconsider = []
+    for z, u in zip(zvals, uvals):
+        if z > displacement:
+            zconsider.append(z - displacement)
+            uconsider.append(u)
+    A, B = constrained_log_fit(zconsider, uconsider, b=ustar / KAPPA)
+    z0 = np.exp(-A / B)
+    return z0
 
 
 def sine_function(x, A, B, C, D):
