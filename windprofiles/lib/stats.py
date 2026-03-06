@@ -151,6 +151,9 @@ def neutral_loglaw_fit(zvals, uvals, displacement: float = 0.0):
     A, B = log_fit(zconsider, uconsider)
     ustar = B * KAPPA
     z0 = np.exp(-A / B) if not np.isclose(B, 0.0, atol=1e-6) else 0.0
+    if z0 > 10.0 or abs(ustar) > 10.0:
+        z0 = np.nan
+        ustar = np.nan
     return ustar, z0
 
 
@@ -169,6 +172,8 @@ def constrained_neutral_loglaw_fit(
     A, B = constrained_log_fit(zconsider, uconsider, b=ustar / KAPPA)
     z0 = np.exp(-A / B)
     z0 = np.exp(-A / B) if not np.isclose(B, 0.0, atol=1e-6) else 0.0
+    if z0 > 10.0:
+        z0 = np.nan
     return z0
 
 
