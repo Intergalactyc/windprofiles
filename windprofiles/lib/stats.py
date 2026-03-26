@@ -102,6 +102,16 @@ def power_fit(xvals, yvals, require=2):
     return np.exp(lnA), B
 
 
+# def power_fit_r2(xvals, yvals, *args, **kwargs):
+#     a, b = power_fit(xvals, yvals, *args, **kwargs)
+#     y_pred = [a * (x ** b) for x in xvals]
+#     r2 = r2_score(yvals, y_pred)
+#     return a, b, r2
+# # TODO: make this a wrapper instead, have model functions, wrapper takes in model function, gets model parameters from call
+# # e.g. instead of calling power_fit(xvals, yvals), call r2_wrap(power_fit, power_model, xvals, yvals)
+# # >>> maybe separate these things into a new `profiles` module?
+
+
 def log_fit(xvals, yvals):
     """
     Least squares fit to relationship y = a + b*log(x)
