@@ -78,7 +78,7 @@ class _TemplateClassifier(ABC):
     Classifier abstract base class
     """
 
-    def __init__(self, parameter: str|None=None, *, nanNA: bool = True):
+    def __init__(self, parameter: str | None = None, *, nanNA: bool = True):
         """
         `parameter` optionally sets the name of the parameter
             (for pd.DataFrame column selection) to classify based on
@@ -107,7 +107,7 @@ class _TemplateClassifier(ABC):
         """
         self._classNames[-1] = new_name
 
-    def set_parameter(self, parameter: str|None = None):
+    def set_parameter(self, parameter: str | None = None):
         """
         Set classification parameter if one was not provided in __init__
             or for updating old one
@@ -145,7 +145,7 @@ class _TemplateClassifier(ABC):
         """
         pass
 
-    def classify(self, value: int | float) -> str|None:
+    def classify(self, value: int | float) -> str | None:
         """
         Classify a value as one of the classNames based on the given
         classification rules defined by calls to self.add_class
@@ -176,7 +176,7 @@ class _TemplateClassifier(ABC):
                     f"classify._TemplateClassifier.classify_rows: parameter {self._parameter} not found in columns of given pd.DataFrame"
                 )
             return df.apply(
-                lambda row: self.classify(row[self._parameter]), axis=1 # type: ignore
+                lambda row: self.classify(row[self._parameter]), axis=1  # type: ignore
             ).astype("category")
         else:
             raise Exception(
@@ -199,7 +199,7 @@ class PolarClassifier(_TemplateClassifier):
     Directions assumed to be in degrees
     """
 
-    def __init__(self, parameter: str|None=None, nanNA: bool = True):
+    def __init__(self, parameter: str | None = None, nanNA: bool = True):
         super().__init__(parameter=parameter, nanNA=nanNA)
 
     def add_class(
@@ -246,7 +246,7 @@ class SingleClassifier(_TemplateClassifier):
     Classify data based on a single real-valued parameter
     """
 
-    def __init__(self, parameter: str|None = None, nanNA: bool = True):
+    def __init__(self, parameter: str | None = None, nanNA: bool = True):
         super().__init__(parameter=parameter, nanNA=nanNA)
 
     def _parse_interval(self, interval):
@@ -309,7 +309,7 @@ class SingleClassifier(_TemplateClassifier):
     def add_class(
         self,
         class_name: str,
-        interval: str|None = None,
+        interval: str | None = None,
         *,
         left_inclusive: int | float | None = None,
         left_exclusive: int | float | None = None,
@@ -365,10 +365,28 @@ class SingleClassifier(_TemplateClassifier):
         if type(left) is list and type(right) is list:
             return left[0] <= value <= right[0]
         if type(right) is list:
-            return left < value <= right[0] # type: ignore
+            return left < value <= right[0]  # type: ignore
         if type(left) is list:
-            return left[0] <= value < right # type: ignore
-        return left < value < right # type: ignore
+            return left[0] <= value < right  # type: ignore
+        return left < value < right  # type: ignore
+
+    def _split(self, rule_side):
+        if isinstance(rule_side, list):
+            return rule_side[0], "\leq"
+        return rule_side, "<"
+
+    def describe_classes(
+        self, param_name: str | None = None
+    ) -> list[tuple[str, str]]:
+        if param_name is None:
+            param_name = self._parameter
+        return [
+            (
+                clName.title(),
+                rf"{(_l:=self._split(left))[0]} {_l[1]} {param_name} {(_r:=self._split(right))[1]} {_r[0]}",
+            )
+            for clName, (left, right) in zip(self._classNames, self._rules)
+        ]
 
 
 # Future: add MultiClassifier which allows for classification
@@ -496,7 +514,9 @@ class TerrainClassifier(PolarClassifier):
 
 class StabilityClassifier(SingleClassifier):
     def __init__(
-        self, parameter: str|None = None, classes: list[tuple[str, str]]|None = None
+        self,
+        parameter: str | None = None,
+        classes: list[tuple[str, str]] | None = None,
     ):
         """
         Slightly easier setup for a stability-type SingleClassifer.
