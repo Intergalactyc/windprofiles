@@ -371,9 +371,14 @@ class SingleClassifier(_TemplateClassifier):
         return left < value < right  # type: ignore
 
     def _split(self, rule_side):
-        if isinstance(rule_side, list):
-            return rule_side[0], "\leq"
-        return rule_side, "<"
+        r, s = (
+            (rule_side[0], "\leq")
+            if isinstance(rule_side, list)
+            else (rule_side, "<")
+        )
+        if np.isinf(r):
+            return "", ""
+        return r, s
 
     def describe_classes(
         self, param_name: str | None = None
@@ -383,9 +388,10 @@ class SingleClassifier(_TemplateClassifier):
         return [
             (
                 clName.title(),
-                rf"{(_l:=self._split(left))[0]} {_l[1]} {param_name} {(_r:=self._split(right))[1]} {_r[0]}",
+                rf"${(_l:=self._split(rule[0]))[0]} {_l[1]} {param_name} {(_r:=self._split(rule[1]))[1]} {_r[0]}$".strip(),
             )
-            for clName, (left, right) in zip(self._classNames, self._rules)
+            for clName, rule in zip(self._classNames, self._rules)
+            if rule is not None
         ]
 
 
