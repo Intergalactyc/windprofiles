@@ -4,6 +4,7 @@ from scipy.optimize import curve_fit
 import scipy.stats as st
 import pandas as pd
 from collections.abc import Iterable
+from statsmodels.tsa.stattools import acf
 
 from tqdm import tqdm
 
@@ -78,7 +79,7 @@ def constrained_linear_fit(
     # otherwise, b (slope) given
     if n == 0:
         return 0.0, b
-    A = (sum(yvals) - b * sum(xvals)) / n
+    A = (sum(yvals) - b * sum(xvals)) / n # type: ignore
     return A, b
 
 
@@ -169,7 +170,7 @@ def neutral_loglaw_fit(zvals, uvals, displacement: float = 0.0):
 
 def constrained_neutral_loglaw_fit(
     zvals, uvals, ustar: float, displacement: float = 0.0
-):
+) -> float|None:
     """
     neutral_loglaw_fit, but ustar is fixed
     """
@@ -180,8 +181,10 @@ def constrained_neutral_loglaw_fit(
             zconsider.append(z - displacement)
             uconsider.append(u)
     A, B = constrained_log_fit(zconsider, uconsider, b=ustar / KAPPA)
+    if A is None or B is None:
+        return None
     z0 = np.exp(-A / B)
-    z0 = np.exp(-A / B) if not np.isclose(B, 0.0, atol=1e-6) else 0.0
+    z0 = np.exp(-A / B) if not np.isclose(B, 0.0, atol=1e-6) else 0.0 # type: ignore
     if z0 > 10.0:
         z0 = np.nan
     return z0
@@ -360,22 +363,20 @@ def get_spearman(df: pd.DataFrame, which: list | None = None) -> pd.DataFrame:
     for i, col1 in enumerate(which):
         rhos.iloc[i, i] = 1.0
         for j, col2 in enumerate(which[:i]):
-            k12 = st.spearmanr(df[col1], df[col2]).statistic
+            k12 = st.spearmanr(df[col1], df[col2]).statistic # pyright: ignore[reportAttributeAccessIssue]
             rhos.iloc[i, j] = k12
             rhos.iloc[j, i] = k12
     return rhos
 
 
-def autocorrelations(
-    s: pd.Series, lags: Iterable, progress_bar: bool = False
-) -> pd.Series:
-    # TODO: worth seeing if e.g. np.correlate is faster
-    Raa = []
-    iterable = tqdm(lags) if progress_bar else lags
-    for lag in iterable:
-        autocorr = s.autocorr(lag=lag)
-        Raa.append(autocorr)
-    return pd.Series(data=Raa)
+def autocorrelations(s: pd.Series, lags: Iterable) -> pd.Series:
+    max_lag = max(lags)
+    
+    acf_vals = acf(s.values, nlags=max_lag, fft=True) 
+    
+    all_lags_series = pd.Series(acf_vals)
+    
+    return all_lags_series.loc[list(lags)]
 
 
 def detrend(s: pd.Series, mode: str = "linear", m=None, b=None):
@@ -390,3 +391,17 @@ def detrend(s: pd.Series, mode: str = "linear", m=None, b=None):
             return s - s.mean()
         case _:
             raise ValueError(f"Mode {mode} not recognized")
+
+def r2_score(y_true: np.ndarray, y_pred: np.ndarray) -> float:
+    # efficiently calculates R squared (coefficient of determination)
+    y_true = np.asarray(y_true)
+    y_pred = np.asarray(y_pred)
+    
+    ss_res = np.sum((y_true - y_pred) ** 2)
+    
+    ss_tot = np.sum((y_true - np.mean(y_true)) ** 2)
+    
+    if ss_tot == 0:
+        return 0.0 if ss_res > 0 else 1.0
+        
+    return 1.0 - (ss_res / ss_tot)
