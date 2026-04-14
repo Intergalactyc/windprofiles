@@ -181,7 +181,7 @@ class _TemplateClassifier(ABC):
                 f"classify._TemplateClassifier.classify_rows: parameter {self._parameter} not found in columns of given pd.DataFrame"
             )
         if self._last is not None and df.equals(self._last):
-            return self._last_result
+            return self._last_result # type: ignore
         result = df.apply(
             lambda row: self.classify(row[self._parameter]), axis=1  # type: ignore
         ).astype("category")
@@ -378,7 +378,7 @@ class SingleClassifier(_TemplateClassifier):
 
     def _split(self, rule_side):
         r, s = (
-            (rule_side[0], "\leq")
+            (rule_side[0], r"\leq")
             if isinstance(rule_side, list)
             else (rule_side, "<")
         )
