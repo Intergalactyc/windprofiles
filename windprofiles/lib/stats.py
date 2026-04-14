@@ -53,7 +53,7 @@ def constrained_linear_fit(
     """
     if a is None and b is None:
         raise ValueError(
-            "Either a or b must be specified (for unconstrained, use log_fit)"
+            "Either a or b must be specified (for unconstrained, use ls_linear_fit)"
         )
     if a is not None and b is not None:
         raise ValueError("Only one of a or b may be specified")
