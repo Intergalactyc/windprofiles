@@ -89,6 +89,8 @@ class _TemplateClassifier(ABC):
         self._rules = [None]
         self._parameter = parameter
         self._nanNA = nanNA
+        self._last = None
+        self._last_result = None
 
     def _isNaN(self, value):
         return isinstance(value, (float, int)) and math.isnan(value)
@@ -170,18 +172,22 @@ class _TemplateClassifier(ABC):
         """
         Classify the rows of a dataframe according to their values
         """
-        if self._parameter is not None:
-            if self._parameter not in df.columns:
-                raise Exception(
-                    f"classify._TemplateClassifier.classify_rows: parameter {self._parameter} not found in columns of given pd.DataFrame"
-                )
-            return df.apply(
-                lambda row: self.classify(row[self._parameter]), axis=1  # type: ignore
-            ).astype("category")
-        else:
+        if self._parameter is None:
             raise Exception(
                 "classify._TemplateClassifier.classify_rows: no parameter provided"
             )
+        if self._parameter not in df.columns:
+            raise Exception(
+                f"classify._TemplateClassifier.classify_rows: parameter {self._parameter} not found in columns of given pd.DataFrame"
+            )
+        if self._last is not None and df.equals(self._last):
+            return self._last_result
+        result = df.apply(
+            lambda row: self.classify(row[self._parameter]), axis=1  # type: ignore
+        ).astype("category")
+        self._last = df
+        self._last_result = result
+        return result
 
     def get_classes(self, other: bool = True) -> list:
         """
