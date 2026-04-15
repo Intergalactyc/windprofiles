@@ -163,8 +163,10 @@ def welch_psd(
     freq_zero: bool = False,
     max_freq: float | str | None = "nyquist",
 ) -> pd.Series:
+    _s = s.interpolate(method="linear") if s.isna().any() else s
+
     f, Pxx = welch(
-        s.values,
+        _s.values,
         frequency,
         window="hann",
         nperseg=nperseg,
@@ -224,10 +226,17 @@ def log_bin_spectrum(psd: pd.Series, num_bins: int = 50) -> pd.Series:
     return pd.Series(data=S_binned[mask], index=f_binned[mask])
 
 def spectral_integral_time_scale(psd: pd.Series, sigma: float, component: str) -> tuple[float, dict[str, float]]:
+    if psd.empty or psd.isna().all():
+        return np.nan, {"kaimal": np.nan, "vonkarman": np.nan}
+    
     _psd = log_bin_spectrum(psd)
-    f = _psd.index.values
-    y = _psd.values
-    log_y = np.log10(y)
+
+    if len(_psd) < 3:
+        return np.nan, {"kaimal": np.nan, "vonkarman": np.nan}
+    
+    f = _psd.index.to_numpy(dtype=np.float64)
+    y_safe = _psd.clip(lower=1e-12).to_numpy(dtype=np.float64)
+    log_y = np.log10(y_safe)
     
     def kaimal(f, X):
         S = 4 * (sigma**2) * X / (1 + 6 * f * X)**(5/3)
