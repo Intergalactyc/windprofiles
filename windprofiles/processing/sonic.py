@@ -283,7 +283,7 @@ def spectral_integral_time_scale(psd: pd.Series, sigma: float, component: str) -
                 f, 
                 log_y, 
                 p0=[15.0], 
-                bounds=(0.1, 600.0),
+                bounds=(0.1, 1800.0),
                 jac=jac_func
             )
             X_fit = popt[0]

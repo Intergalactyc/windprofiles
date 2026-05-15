@@ -11,3 +11,4 @@ pyproj
 scipy
 tqdm
 scikit-learn
+statsmodels
