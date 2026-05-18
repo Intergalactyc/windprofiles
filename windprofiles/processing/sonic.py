@@ -225,18 +225,26 @@ def log_bin_spectrum(psd: pd.Series, num_bins: int = 50) -> pd.Series:
     
     return pd.Series(data=S_binned[mask], index=f_binned[mask])
 
-def spectral_integral_time_scale(psd: pd.Series, sigma: float, component: str, kaimal_only: bool=False) -> tuple[float, dict[str, float]]:
+def spectral_integral_time_scale(psd: pd.Series, sigma: float, component: str, kaimal_only: bool=False, minimum_frequency: float|None=None) -> tuple[float, dict[str, float]]:
     if psd.empty or psd.isna().all():
         return np.nan, {"kaimal": np.nan, "vonkarman": np.nan}
     
     _psd = log_bin_spectrum(psd)
 
-    if len(_psd) < 3:
-        return np.nan, {"kaimal": np.nan, "vonkarman": np.nan}
-    
     f = _psd.index.to_numpy(dtype=np.float64)
     y_safe = _psd.clip(lower=1e-12).to_numpy(dtype=np.float64)
     log_y = np.log10(y_safe)
+
+    if minimum_frequency is not None:
+        mask = f >= minimum_frequency
+        f_fit = f[mask]
+        log_y_fit = log_y[mask]
+    else:
+        f_fit = f
+        log_y_fit = log_y
+
+    if len(f_fit) < 3:
+        return np.nan, {"kaimal": np.nan} if kaimal_only else {"kaimal": np.nan, "vonkarman": np.nan}
     
     def kaimal(f, X):
         S = 4 * (sigma**2) * X / (1 + 6 * f * X)**(5/3)
@@ -282,8 +290,8 @@ def spectral_integral_time_scale(psd: pd.Series, sigma: float, component: str, k
         try:
             popt, _ = curve_fit(
                 model_func, 
-                f, 
-                log_y, 
+                f_fit,
+                log_y_fit, 
                 p0=[15.0], 
                 bounds=(0.001, 1800.0),
                 jac=jac_func
