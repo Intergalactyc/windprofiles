@@ -225,7 +225,7 @@ def log_bin_spectrum(psd: pd.Series, num_bins: int = 50) -> pd.Series:
     
     return pd.Series(data=S_binned[mask], index=f_binned[mask])
 
-def spectral_integral_time_scale(psd: pd.Series, sigma: float, component: str) -> tuple[float, dict[str, float]]:
+def spectral_integral_time_scale(psd: pd.Series, sigma: float, component: str, kaimal_only: bool=False) -> tuple[float, dict[str, float]]:
     if psd.empty or psd.isna().all():
         return np.nan, {"kaimal": np.nan, "vonkarman": np.nan}
     
@@ -266,8 +266,10 @@ def spectral_integral_time_scale(psd: pd.Series, sigma: float, component: str) -
         )
         return grad.reshape(-1, 1)
 
-    models_to_test = {
-        "kaimal": (kaimal, kaimal_jac),
+    _kaimal = (kaimal, kaimal_jac)
+    
+    models_to_test = {"kaimal" : _kaimal} if kaimal_only else {
+        "kaimal": _kaimal,
         "vonkarman" : (vk_u, vk_u_jac) if component == "u" else (vk_vw, vk_vw_jac)
     }
 
@@ -283,7 +285,7 @@ def spectral_integral_time_scale(psd: pd.Series, sigma: float, component: str) -
                 f, 
                 log_y, 
                 p0=[15.0], 
-                bounds=(0.1, 1800.0),
+                bounds=(0.001, 1800.0),
                 jac=jac_func
             )
             X_fit = popt[0]
