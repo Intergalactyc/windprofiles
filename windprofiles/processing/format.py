@@ -50,17 +50,24 @@ def rename_headers(
     drop_others: bool = True,
     drop_empty: bool = True,
 ):
-    result = df.copy()
-    for col in result.columns:
+    # Collect the rename map and drop list in one pass, then apply each as a
+    # single batched call - individually renaming/dropping one column at a
+    # time (even with inplace=True) still triggers a full block-manager
+    # reindex per call, which dominates load time on wide (~200+ column)
+    # frames.
+    rename_map = {}
+    drop_list = []
+    for col in df.columns:
         col_type, height_str = col.split("_")
         if col_type in mapper:
             if mapper[col_type] is not None:
-                new = f"{mapper[col_type]}_{height_str}"
-                result.rename(columns={col: new}, inplace=True)
+                rename_map[col] = f"{mapper[col_type]}_{height_str}"
             elif drop_nones:
-                result.drop(columns=[col], inplace=True)
+                drop_list.append(col)
         elif drop_others:
-            result.drop(columns=[col], inplace=True)
+            drop_list.append(col)
+
+    result = df.drop(columns=drop_list).rename(columns=rename_map)
     if drop_empty:
-        result.dropna(axis=1, how="all", inplace=True)
+        result = result.dropna(axis=1, how="all")
     return result

@@ -34,7 +34,12 @@ def get_stats(
             else:
                 result[result_col] = pd.NA
         else:
-            result[result_col] = stat(df[col])
+            # dropna before stat(...): a single leftover NaN would otherwise
+            # silently NaN out the whole aggregate for an arbitrary passed-in
+            # stat callable (np.mean/np.std/np.max/...), rather than just
+            # being excluded from it.
+            valid = df[col].dropna()
+            result[result_col] = stat(valid) if len(valid) else np.nan
     return result
 
 
@@ -47,8 +52,8 @@ def mean_directions(df, booms, prefix: str = "", degrees: bool = True):
         ux = df[f"{prefix}u_{b}"]
         uy = df[f"{prefix}v_{b}"]
 
-        uxavg = np.mean(ux)
-        uyavg = np.mean(uy)
+        uxavg = np.nanmean(ux)
+        uyavg = np.nanmean(uy)
 
         result[f"{prefix}wd_{b}_mean"] = polar.polar_wind(
             uxavg, uyavg, degrees

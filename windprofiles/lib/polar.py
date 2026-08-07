@@ -64,8 +64,12 @@ def polar_average(magnitudes, directions, degrees: bool = True):
     )  # the polar_wind function uses this swapped convention, so as we are calling it here, we must also use that convention for consistency.
     ys = magnitudes * np.cos(directions_rad)
 
-    xavg = np.mean(xs)
-    yavg = np.mean(ys)
+    # nanmean rather than mean: a single NaN (from either magnitudes or
+    # directions, propagated through the multiplication above) would
+    # otherwise silently NaN out the whole average instead of just being
+    # excluded from it.
+    xavg = np.nanmean(xs)
+    yavg = np.nanmean(ys)
 
     return polar_wind(xavg, yavg, degrees=degrees)
 
@@ -111,7 +115,7 @@ def series_angular_distance(theta, phi, degrees: bool = True):
     """
     mod = 360 if degrees else 2 * np.pi
     d0 = (theta - phi) % mod
-    return d0.apply(lambda d: min(mod - d, d))
+    return np.minimum(mod - d0, d0)
 
 
 def series_signed_angular_distance(
@@ -123,9 +127,8 @@ def series_signed_angular_distance(
     flip_sign = -1 if reverse else 1
     mod = 360 if degrees else 2 * np.pi
     d0 = (theta - phi) % mod
-    return d0.apply(
-        lambda d: flip_sign * -1 * d1 if (d1 := mod - d) < d else flip_sign * d
-    )  # A faster application of signed_angular_distance across series
+    d1 = mod - d0
+    return flip_sign * np.where(d1 < d0, -d1, d0)
 
 
 def directional_rms(directions, degrees: bool = True):
@@ -136,5 +139,5 @@ def directional_rms(directions, degrees: bool = True):
     """
     mean_direction = unit_average_direction(directions, degrees=degrees)
     deviations = series_angular_distance(directions, mean_direction)
-    variance = np.mean(deviations * deviations) - (np.mean(deviations)) ** 2
+    variance = np.nanmean(deviations * deviations) - (np.nanmean(deviations)) ** 2
     return variance**0.5

@@ -20,6 +20,19 @@ TRANSFORMS = {
 KAPPA = 0.41  # Von Karman constant
 
 
+def _drop_nan_pairs(xvals: list, yvals: list) -> tuple[list, list]:
+    """
+    Filters paired (x, y) lists to drop any pair where either value is NaN.
+    Single-pass (unlike mutating xvals/yvals with .remove() while iterating
+    over them, which can skip elements when duplicate values are present).
+    """
+    pairs = [(x, y) for x, y in zip(xvals, yvals) if not (math.isnan(x) or math.isnan(y))]
+    if not pairs:
+        return [], []
+    xs, ys = zip(*pairs)
+    return list(xs), list(ys)
+
+
 def ls_linear_fit(xvals, yvals):
     """
     Least squares fit to a relationship y = a + b*x
@@ -31,10 +44,7 @@ def ls_linear_fit(xvals, yvals):
     yvals = list(yvals)
     if len(yvals) != len(xvals):
         raise RuntimeError("Lists must be of equal size")
-    for x, y in zip(xvals, yvals):
-        if math.isnan(x) or math.isnan(y):
-            xvals.remove(x)
-            yvals.remove(y)
+    xvals, yvals = _drop_nan_pairs(xvals, yvals)
     n = len(xvals)
     sum_x = sum(xvals)
     sum_x2 = sum(x * x for x in xvals)
@@ -60,12 +70,10 @@ def constrained_linear_fit(
         raise ValueError("Only one of a or b may be specified")
 
     xvals = list(xvals)
+    yvals = list(yvals)
     if len(yvals) != len(xvals):
         raise RuntimeError("Lists must be of equal size")
-    for x, y in zip(xvals, yvals):
-        if math.isnan(x) or math.isnan(y):
-            xvals.remove(x)
-            yvals.remove(y)
+    xvals, yvals = _drop_nan_pairs(xvals, yvals)
     n = len(xvals)
 
     if a is not None:  # a (intercept) given
