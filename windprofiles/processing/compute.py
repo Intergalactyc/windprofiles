@@ -236,6 +236,8 @@ def power_law_fits(
     columns: list[str|None] = ["beta", "alpha"],
     suffix: str = "",
     prefix: str = "",
+    variable: str = "ws",
+    return_new_columns_only: bool = False
 ):
     """
     Fit power law u(z) = A z ^ B to each timestamp in a dataframe.
@@ -252,12 +254,12 @@ def power_law_fits(
             "'columns' must be a tuple or list of two column names for the multiplicative coefficient and power, respectively"
         )
 
-    result = df.copy()
+    result = pd.DataFrame(index=df.index) if return_new_columns_only else df.copy()
 
-    result[["A_PRIMITIVE", "B_PRIMITIVE"]] = result.apply(
+    result[["A_PRIMITIVE", "B_PRIMITIVE"]] = df.apply(
         lambda row: stats.power_fit(
             heights,
-            [row[f"{prefix}ws_{b}{suffix}"] for b in booms],
+            [row[f"{prefix}{variable}_{b}{suffix}"] for b in booms],
             require=minimum_present,
         ),
         axis=1,
