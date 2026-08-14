@@ -157,7 +157,15 @@ def bulk_richardson_number(
     gravity=STANDARD_GRAVITY,
 ) -> float | pd.Series:
     """
-    Compute the bulk Richardson number Ri_bulk using data at two heights
+    Compute the bulk Richardson number Ri_bulk using data at two heights.
+
+    wd_lower/wd_upper (when components=False) are genuine meteorological
+    wind directions (degrees CW of N, FROM convention), converted via
+    bearing_to_vector. Note Ri_bulk only depends on the squared magnitude of
+    the (u_upper-u_lower, v_upper-v_lower) difference vector, which is
+    invariant under any consistent rotation/reflection of the u,v frame
+    applied identically at both heights - so this is robust to convention
+    choices by construction, not by coincidence.
     """
     delta_vpt = vpt_upper - vpt_lower
     delta_z = height_upper - height_lower
@@ -166,8 +174,8 @@ def bulk_richardson_number(
         u_lower, u_upper = ws_lower, ws_upper
         v_lower, v_upper = wd_lower, wd_upper
     else:
-        u_lower, v_lower = polar.wind_components(ws_lower, wd_lower)
-        u_upper, v_upper = polar.wind_components(ws_upper, wd_upper)
+        u_lower, v_lower = polar.bearing_to_vector(ws_lower, wd_lower)
+        u_upper, v_upper = polar.bearing_to_vector(ws_upper, wd_upper)
 
     delta_u = u_upper - u_lower
     delta_v = v_upper - v_lower

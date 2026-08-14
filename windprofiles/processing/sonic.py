@@ -11,6 +11,16 @@ from scipy.stats import binned_statistic
 def get_stats(
     df: pd.DataFrame, stat=np.mean, suffix=None, col_types=None
 ) -> dict:
+    """
+    Per-column aggregate stats. Note: for columns typed "wd"/"propwd"
+    (angular quantities, e.g. wd_5), the `stat` argument is ignored - mean is
+    always a circular/unit-vector average (polar.unit_average_direction) and
+    std is always the Yamartino directional RMS (polar.directional_rms),
+    regardless of what `stat` was actually passed in. A naive np.mean/np.std
+    on raw angle values breaks near the 0/360 wraparound, so this override
+    exists to always do the right thing for angular columns - callers don't
+    need to (and can't) opt out of it.
+    """
     result = dict()
     if suffix is None:
         if stat == np.mean:
@@ -44,8 +54,16 @@ def get_stats(
 
 
 def mean_directions(df, booms, prefix: str = "", degrees: bool = True):
-    # u should be East, v should be North
-
+    """
+    Vector-mean wind direction per boom: averages the actual (u,v) = (east,
+    north) "blows-toward" velocity components (not the per-sample angles -
+    a plain angle average would break near 0/360 wraparound and would be
+    biased toward calm/noisy-direction samples that a magnitude-weighted
+    vector average correctly downweights), then converts the resulting mean
+    vector to a genuine meteorological wind direction (degrees CW of N,
+    FROM convention) via vector_to_bearing. Returns {"{prefix}wd_{b}_mean":
+    from_bearing, ...}.
+    """
     result = {}
 
     for b in booms:
@@ -55,8 +73,8 @@ def mean_directions(df, booms, prefix: str = "", degrees: bool = True):
         uxavg = np.nanmean(ux)
         uyavg = np.nanmean(uy)
 
-        result[f"{prefix}wd_{b}_mean"] = polar.polar_wind(
-            uxavg, uyavg, degrees
+        result[f"{prefix}wd_{b}_mean"] = polar.vector_to_bearing(
+            uxavg, uyavg, degrees=degrees
         )[1]
 
     return result
@@ -65,10 +83,15 @@ def mean_directions(df, booms, prefix: str = "", degrees: bool = True):
 def align_to_directions(
     df, directions, prefix: str = "", degrees: bool = True
 ):
-    # Given vector-mean wind directions:
+    # Given vector-mean wind directions (genuine FROM-bearings, e.g. from
+    # mean_directions above):
     # Convert wind components to streamwise coordinates - that is,
     # Geometrically align the u, v components of wind such that u is oriented
     # in the direction of the mean wind and v is in the crosswind direction (and hence mean-0)
+    # Post-condition: aligned mean-u equals the full wind speed magnitude,
+    # aligned mean-v is ~0 - this holds as long as `directions` are already
+    # correct FROM-bearings; this function itself doesn't do any FROM/TOWARD
+    # conversion, it just rotates by the angle it's given.
     by_boom = {
         int(s.split("_")[1]): np.deg2rad(d) if degrees else d
         for s, d in directions.items()

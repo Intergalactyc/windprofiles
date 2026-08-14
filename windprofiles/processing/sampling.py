@@ -41,7 +41,7 @@ def shadowing_merge(df, speeds, directions, angles, width=30, drop_old=True):
         _spd, _dir, _ang = speeds[i], directions[i], angles[i]
         raw_deviations = (df[_dir] - _ang) % 360
         corr_deviations = raw_deviations.apply(lambda d: min(360 - d, d))
-        u, v = polar.wind_components(df[_spd], df[_dir])
+        u, v = polar.bearing_to_vector(df[_spd], df[_dir])
         u[corr_deviations < radius] = np.nan # type: ignore
         v[corr_deviations < radius] = np.nan # type: ignore
         uList.append(u)
@@ -50,8 +50,7 @@ def shadowing_merge(df, speeds, directions, angles, width=30, drop_old=True):
     warnings.filterwarnings(action="ignore", message="Mean of empty slice")
     uMeans = np.nanmean(np.stack(uList), axis=0)
     vMeans = np.nanmean(np.stack(vList), axis=0)
-    sMeans = np.sqrt(uMeans * uMeans + vMeans * vMeans)
-    dMeans = (np.rad2deg(np.arctan2(uMeans, vMeans)) + 360) % 360
+    sMeans, dMeans = polar.vector_to_bearing(uMeans, vMeans)
     if drop_old:
         df.drop(columns=speeds + directions, inplace=True)
     return sMeans, dMeans, [int(n) for n in n_shadowed]
@@ -71,7 +70,7 @@ def resample(
     window = f"{window_size_minutes}min"
 
     for b in all_booms:
-        to_resample[f"x_{b}"], to_resample[f"y_{b}"] = polar.wind_components(
+        to_resample[f"x_{b}"], to_resample[f"y_{b}"] = polar.bearing_to_vector(
             to_resample[f"ws_{b}"], to_resample[f"wd_{b}"]
         )
 
@@ -116,13 +115,9 @@ def resample(
             resampled[f"drms_{b}"] = drms_dict[b]
 
         # Find vector averages
-        resampled[f"ws_{b}"] = np.sqrt(
-            resampled[f"x_{b}"] ** 2 + resampled[f"y_{b}"] ** 2
+        resampled[f"ws_{b}"], resampled[f"wd_{b}"] = polar.vector_to_bearing(
+            resampled[f"x_{b}"], resampled[f"y_{b}"]
         )
-        resampled[f"wd_{b}"] = (
-            np.rad2deg(np.arctan2(resampled[f"x_{b}"], resampled[f"y_{b}"]))
-            + 360
-        ) % 360
         resampled.drop(columns=[f"x_{b}", f"y_{b}"], inplace=True)
 
     return resampled
