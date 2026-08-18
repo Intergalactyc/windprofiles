@@ -195,12 +195,17 @@ def welch_psd(
 ) -> pd.Series:
     _s = s.interpolate(method="linear") if s.isna().any() else s
 
+    # scipy clamps its own effective nperseg down to len(_s) when the signal is shorter;
+    # noverlap must be derived from that same clamped value or scipy raises
+    # "noverlap must be less than nperseg" instead of just using a shorter window.
+    effective_nperseg = min(nperseg, len(_s))
+
     f, Pxx = welch(
         _s.values,
         frequency,
         window="hann",
-        nperseg=nperseg,
-        noverlap=nperseg // 2,
+        nperseg=effective_nperseg,
+        noverlap=effective_nperseg // 2,
         scaling="density",
     )
 
