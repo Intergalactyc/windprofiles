@@ -15,10 +15,8 @@ def test_ls_linear_fit_basic():
 
 
 def test_ls_linear_fit_duplicate_values_with_nan():
-    # Regression test: duplicate x/y values alongside NaN pairs used to be
-    # able to break the old xvals.remove(x)/yvals.remove(y)-while-iterating
-    # NaN filter, since list.remove() removes the *first* matching element,
-    # not necessarily the one paired with the NaN being dropped.
+    # Duplicate x/y values alongside NaN pairs: a naive value-based removal
+    # could drop the wrong (non-NaN) occurrence instead of the paired one.
     xvals = [1.0, 2.0, 2.0, float("nan"), 3.0, 2.0]
     yvals = [10.0, 20.0, 21.0, 99.0, 30.0, float("nan")]
 

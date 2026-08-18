@@ -33,11 +33,9 @@ def test_wind_components_polar_wind_round_trip():
 
 
 def test_bearing_to_vector_from_bearing_axis_aligned():
-    # These are exactly the two cases that distinguish a correct FROM
-    # conversion from the old, broken polar_wind(flip=True) formula
-    # ((180-theta)%360 instead of (theta+180)%360): a vector pointing due
-    # north is a "south wind" (FROM 180), one pointing due east is a "west
-    # wind" (FROM 270) - the old formula would have given 180 and 90.
+    # A "south wind" (FROM 180) points due north; a "west wind" (FROM 270)
+    # points due east - the two axis-aligned cases that pin down the sign
+    # convention of a correct FROM-bearing-to-vector conversion.
     u, v = bearing_to_vector(1.0, 180.0)  # wind FROM the south -> points N
     assert (u, v) == approx((0.0, 1.0), abs=1e-9)
     u, v = bearing_to_vector(1.0, 270.0)  # wind FROM the west -> points E
@@ -62,12 +60,9 @@ def test_bearing_to_vector_vector_to_bearing_round_trip():
 
 
 def test_unit_average_direction_is_circular_not_naive():
-    # Naive arithmetic mean of {350, 10} is 180 - physically backwards (the
-    # true "average" of two directions straddling due-north is north, 0).
-    # Compared mod 360 (not directly against 0.0): floating-point rounding
-    # in the degrees<->radians round trip can land the raw result at exactly
-    # 360.0 rather than 0.0 for this symmetric case - both represent the
-    # same direction, so the comparison normalizes with % 360 first.
+    # Naive arithmetic mean of {350, 10} is 180 - physically backwards (the true
+    # average of two directions straddling due-north is north). Compared mod 360
+    # since the degrees<->radians round trip can land exactly on 360 instead of 0.
     assert unit_average_direction(pd.Series([350.0, 10.0])) % 360 == approx(0.0, abs=1e-9)
     assert unit_average_direction(pd.Series([0.0, 90.0])) == approx(45.0, abs=1e-9)
 
@@ -77,7 +72,7 @@ def test_directional_rms_invariant_under_reflection_and_rotation():
     directions = pd.Series(rng.uniform(0, 360, 200))
 
     baseline = directional_rms(directions)
-    reflected = directional_rms((180 - directions) % 360)  # the old, broken flip=True convention
+    reflected = directional_rms((180 - directions) % 360)  # a reflection
     rotated = directional_rms((directions + 137.0) % 360)  # an arbitrary uniform rotation
 
     assert reflected == approx(baseline, abs=1e-9)
