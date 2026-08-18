@@ -116,9 +116,6 @@ def power_fit(xvals, yvals, require=2):
 #     y_pred = [a * (x ** b) for x in xvals]
 #     r2 = r2_score(yvals, y_pred)
 #     return a, b, r2
-# # TODO: make this a wrapper instead, have model functions, wrapper takes in model function, gets model parameters from call
-# # e.g. instead of calling power_fit(xvals, yvals), call r2_wrap(power_fit, power_model, xvals, yvals)
-# # >>> maybe separate these things into a new `profiles` module?
 
 
 def log_fit(xvals, yvals):

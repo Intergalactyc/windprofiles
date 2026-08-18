@@ -51,8 +51,6 @@ def test_frame_discrepancy_by_row(
             be checked to be within default tolerance rather than exactly)
         `progress` to show a tqdm progress bar; you probably shouldn't combine
             this with `details`
-    Aside: This was used for comparing old results to those outputted by updated code
-        and finding an error in the old shadowing-mean-computation function.
     """
     if df1.shape != df2.shape:
         raise Exception("Mismatch in shapes")

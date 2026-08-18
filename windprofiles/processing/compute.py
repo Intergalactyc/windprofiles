@@ -179,7 +179,7 @@ def veer(
     *,
     suffix: str = "",
     colname="veer",
-) -> pd.DataFrame:  #
+) -> pd.DataFrame:
     """
     Compute signed veer in wind direction between two booms.
     If vertical turning is CW, return +, if it is CCW, return -.

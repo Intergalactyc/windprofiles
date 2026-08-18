@@ -13,7 +13,10 @@ import geopy.distance as gdist
 
 class CoordinateRegion:
     """
-    Pseudoclassifier class that can be used to determine whether a"""
+    Pseudoclassifier class that can be used to determine whether
+    a latitude-longitude coordinate is within a certain distance (geodesic OR angular)
+    of another.
+    """
 
     def __init__(
         self,
@@ -27,7 +30,6 @@ class CoordinateRegion:
         Pass either a single value for radius or a latitude,
             longitude tuple pair (order is important)
         """
-        # Would like to add in ability to use distance radius rather than just angular
         if unit not in ["km", "m", "kilometers", "meters", "mi", "miles"]:
             raise Exception(f"Unit {unit} not recognized")
         self._unit = unit
@@ -399,13 +401,6 @@ class SingleClassifier(_TemplateClassifier):
             for clName, rule in zip(self._classNames, self._rules)
             if rule is not None
         ]
-
-
-# Future: add MultiClassifier which allows for classification
-#   based on multiple parameters simultaneously;
-#   DiscreteClassifier which classifies based on matching
-#   exactly one value (possibly within tolerance) including non-numerics
-
 
 class TerrainClassifier(PolarClassifier):
     """

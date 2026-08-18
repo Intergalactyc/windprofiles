@@ -106,8 +106,6 @@ def align_to_directions(
 
         ux_aligned = ux * np.sin(d) + uy * np.cos(d)
         uy_aligned = ux * np.cos(d) - uy * np.sin(d)
-        # ux_aligned = ux * np.cos(d) + uy * np.sin(d)
-        # uy_aligned = -ux * np.sin(d) + uy * np.cos(d)
 
         dfc[f"{prefix}u_{b}"] = ux_aligned
         dfc[f"{prefix}v_{b}"] = uy_aligned

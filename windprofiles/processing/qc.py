@@ -9,10 +9,6 @@ def remove_data(
     Removes data within certain specified datetime intervals.
     Removal can be complete (specify 'ALL') or partial (specify
         list of integer booms).
-    See kcc.py's `removal_periods` for an example of proper
-        format for `periods`.
-    If silent == False then #s of total and partial removals
-        will be printed.
     """
     result = df.copy()
 

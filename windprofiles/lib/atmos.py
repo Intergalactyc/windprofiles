@@ -114,10 +114,11 @@ def dewpoint_temperature(temperature, relative_humidity):
     """
     Given temperature in K and relative humidity decimal value, compute dewpoint temperature in K
     """
-    # Currently using a rough approximation. A better approximation is the Magnus formula, not yet implemented here.
+    # Currently using a pretty rough approximation.
+    # TODO: implement Magnus formula (better approximation)
     return temperature - 20 * (
         1 - relative_humidity
-    )  # often seen as T - 0.2(100-RH), which is for RH in %
+    )  # often seen as T - 0.2*(100-RH), which is for RH in %
 
 
 def vpt_from_3(relative_humidity, barometric_air_pressure, temperature):
@@ -261,7 +262,7 @@ def _oneway_finite_difference_wind_gradient(
             _d = polar.series_signed_angular_distance(
                 wd1, wd0, degrees=degrees
             )
-        V1, U1 = polar.wind_components(u1, _d, degrees=degrees)
+        V1, U1 = polar.wind_components(u1, _d, degrees=degrees) # pyright: ignore[reportArgumentType]
         dU_dz = (U1 - u0) / h
         dV_dz = V1 / h
         if log_method:
@@ -330,8 +331,8 @@ def finite_difference_wind_gradient(
             )
 
         # V is latitudinal wrt center height, U is longitudinal (mean wind dir)
-        V_m, U_m = polar.wind_components(u_minus, d_m, degrees=degrees)
-        V_p, U_p = polar.wind_components(u_plus, d_p, degrees=degrees)
+        V_m, U_m = polar.wind_components(u_minus, d_m, degrees=degrees) # pyright: ignore[reportArgumentType]
+        V_p, U_p = polar.wind_components(u_plus, d_p, degrees=degrees) # pyright: ignore[reportArgumentType]
 
         dU_dz = _finite_difference(h1, h2, U_m, u, U_p)
         dV_dz = _finite_difference(h1, h2, V_m, 0.0, V_p)

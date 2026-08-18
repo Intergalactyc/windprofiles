@@ -76,25 +76,3 @@ def get_weather_data(
             )
     station = station.iloc[0]
     return data
-    # return WeatherStation(
-    #     df=data,
-    #     station_wmo_id=station.get("wmo"),
-    #     station_icao_id=station.get("icao"),
-    #     station_name=station.get("name"),
-    #     units={
-    #         "t": "C",
-    #         "prcp": "mm",
-    #         "snow": "mm",
-    #         "p": "hPa",
-    #         "ws": "km/h",
-    #         "wd": "CW-N",
-    #         "rh": "%",
-    #     },
-    #     timezone="UTC",
-    #     location=Location(
-    #         latitude=station["latitude"],
-    #         longitude=station["longitude"],
-    #         elevation=station["elevation"],
-    #         timezone=station["timezone"],
-    #     ),
-    # )

@@ -151,7 +151,7 @@ class CustomParser:
 
 
 class Parser:
-    # old
+    # Old - use CustomParser now
     def __init__(
         self, paths: list = [], define: list = [], special: list = []
     ):

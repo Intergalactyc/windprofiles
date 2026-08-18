@@ -24,8 +24,8 @@ def clean_formatting(df, type="float32"):
     Also cast data (with '_', o.t. times) to `type`, default float32.
         Disable this by setting `type = None`.
     Finally, fixes duplicates and misordering.
-    Assumes that dataframe formatting is already
-        otherwise full consistent with guidelines.
+    (Assumes that dataframe formatting is already
+        otherwise fully consistent with guidelines)
     """
     result = df.copy(deep=True)
 
@@ -50,11 +50,7 @@ def rename_headers(
     drop_others: bool = True,
     drop_empty: bool = True,
 ):
-    # Collect the rename map and drop list in one pass, then apply each as a
-    # single batched call - individually renaming/dropping one column at a
-    # time (even with inplace=True) still triggers a full block-manager
-    # reindex per call, which dominates load time on wide (~200+ column)
-    # frames.
+    # Collect the rename map and drop list in one pass, then apply each as a single batched call
     rename_map = {}
     drop_list = []
     for col in df.columns:
