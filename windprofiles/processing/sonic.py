@@ -89,13 +89,15 @@ def align_to_directions(
     # Geometrically align the u, v components of wind such that u is oriented
     # in the direction of the mean wind and v is in the crosswind direction (and hence mean-0)
     # Post-condition: aligned mean-u equals the full wind speed magnitude,
-    # aligned mean-v is ~0 - this holds as long as `directions` are already
-    # correct FROM-bearings; this function itself doesn't do any FROM/TOWARD
-    # conversion, it just rotates by the angle it's given.
-    by_boom = {
-        int(s.split("_")[1]): np.deg2rad(d) if degrees else d
-        for s, d in directions.items()
-    }
+    # aligned mean-v is ~0 - this holds as long as `directions` are correct
+    # FROM-bearings. The rotation itself needs the TOWARD-bearing (the
+    # compass heading u should point along), so convert FROM->TOWARD first
+    # (mirrors polar.bearing_to_vector) before rotating.
+    mod = 360 if degrees else 2 * np.pi
+    by_boom = {}
+    for s, d in directions.items():
+        toward = (d + mod / 2) % mod
+        by_boom[int(s.split("_")[1])] = np.deg2rad(toward) if degrees else toward
 
     dfc = df.copy()
     for b, d in by_boom.items():
