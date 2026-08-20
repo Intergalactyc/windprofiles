@@ -194,7 +194,12 @@ def bulk_richardson_number(
     if isinstance(vpt_lower, pd.Series):
         return pd.Series(ri, index=vpt_lower.index)
 
-    return ri # pyright: ignore[reportReturnType]
+    # np.where always returns an ndarray, even given scalar inputs (a 0-d
+    # one here) - unwrap it so row-wise callers (e.g. df.apply(axis=1) in
+    # compute.bulk_richardson_number) get a real float, not an object
+    # wrapping an ndarray (which silently poisons the resulting column to
+    # dtype=object).
+    return float(ri)
 
 
 def friction_velocity(
