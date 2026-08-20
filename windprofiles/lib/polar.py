@@ -1,10 +1,30 @@
+from typing import overload, Union
+
 import numpy as np
 import pandas as pd
 
+# numbers.Number can't be used here: numpy ufuncs don't accept it
+# (no __array_ufunc__ in typeshed) and typeshed doesn't model float/int as
+# subtypes of it, so it fails static checks on nearly every line. This
+# covers the same "any real scalar" intent, including numpy float dtypes.
+Scalar = Union[int, float, np.floating]
 
+
+@overload
 def wind_components(
-    speed: int|float|complex|pd.Series, direction: int|float|complex|pd.Series, degrees: bool = True
-) -> tuple[int|float|complex|pd.Series|np.ndarray, int|float|complex|pd.Series|np.ndarray]:
+    speed: Scalar, direction: Scalar, degrees: bool = True
+) -> tuple[float, float]: ...
+@overload
+def wind_components(
+    speed: pd.Series, direction: pd.Series, degrees: bool = True
+) -> tuple[pd.Series, pd.Series]: ...
+@overload
+def wind_components(
+    speed: np.ndarray, direction: np.ndarray, degrees: bool = True
+) -> tuple[np.ndarray, np.ndarray]: ...
+def wind_components(
+    speed: Scalar|pd.Series|np.ndarray, direction: Scalar|pd.Series|np.ndarray, degrees: bool = True
+) -> tuple[Scalar|pd.Series|np.ndarray, Scalar|pd.Series|np.ndarray]:
     """
     Pure polar-to-Cartesian conversion, exact inverse of polar_wind.
 
@@ -23,11 +43,11 @@ def wind_components(
     direction_rad = np.deg2rad(direction) if degrees else direction
     u = speed * np.sin(direction_rad)
     v = speed * np.cos(direction_rad)
-    if isinstance(speed, (int, float, complex)):
+    if isinstance(speed, (int, float, np.floating)):
         if speed == 0:
             u = 0.0
             v = 0.0
-    elif isinstance(speed, pd.Series):
+    elif isinstance(speed, (pd.Series, np.ndarray)):
         u[speed == 0] = 0.0
         v[speed == 0] = 0.0
     else:
