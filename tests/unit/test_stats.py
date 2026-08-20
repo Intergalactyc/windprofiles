@@ -1,8 +1,15 @@
 import math
 
+import numpy as np
 from pytest import approx
+from scipy.optimize import curve_fit
 
-from windprofiles.lib.stats import constrained_linear_fit, ls_linear_fit
+from windprofiles.lib.stats import (
+    constrained_linear_fit,
+    ls_linear_fit,
+    ls_weighted_linear_fit,
+    power_fit,
+)
 
 
 def test_ls_linear_fit_basic():
@@ -61,3 +68,53 @@ def test_constrained_linear_fit_duplicate_values_with_nan():
 
     assert a == 0.0
     assert b == approx(expected_b, abs=1e-9)
+
+
+def test_ls_weighted_linear_fit_equal_weights_matches_unweighted():
+    xvals = [1.0, 2.0, 3.0, 4.0, 5.5]
+    yvals = [10.25, 10.5, 10.75, 11.0, 11.375]
+    a_u, b_u = ls_linear_fit(xvals, yvals)
+    a_w, b_w = ls_weighted_linear_fit(xvals, yvals, weights=[1.0] * len(xvals))
+    assert a_w == approx(a_u, abs=1e-9)
+    assert b_w == approx(b_u, abs=1e-9)
+
+
+def test_ls_weighted_linear_fit_basic():
+    # y = 8 + 2*x, exactly; weights should not affect a noiseless exact fit
+    xvals = [1.0, 2.0, 3.0, 4.0]
+    yvals = [10.0, 12.0, 14.0, 16.0]
+    weights = [1.0, 4.0, 9.0, 16.0]
+    a, b = ls_weighted_linear_fit(xvals, yvals, weights)
+    assert a == approx(8.0, abs=1e-9)
+    assert b == approx(2.0, abs=1e-9)
+
+
+def test_power_fit_recovers_exact_powerlaw():
+    xvals = [1.0, 2.0, 4.0, 8.0, 16.0]
+    a_true, b_true = 3.0, 0.5
+    yvals = [a_true * x**b_true for x in xvals]
+    a, b = power_fit(xvals, yvals)
+    assert a == approx(a_true, abs=1e-9)
+    assert b == approx(b_true, abs=1e-9)
+
+
+def test_power_fit_weighting_reduces_bias_vs_nls():
+    # y = 3*x^0.5 plus roughly-constant-magnitude (not relative) noise: since
+    # the noise is homoscedastic in real y-space, true nonlinear least squares
+    # (unweighted in y-space) is the reference a weighted log-log fit should
+    # track more closely than an unweighted log-log fit, which implicitly
+    # underweights large-y points.
+    xvals = np.array([1.0, 2.0, 4.0, 8.0, 16.0, 32.0])
+    a_true, b_true = 3.0, 0.5
+    noise = np.array([-1.0, 0.8, -0.6, 0.5, 1.0, -0.9])
+    yvals = a_true * xvals**b_true + noise
+
+    lnA_unweighted, b_unweighted = ls_linear_fit(np.log(xvals), np.log(yvals))
+    _, b_weighted = power_fit(list(xvals), list(yvals))
+
+    (_, b_nls), _ = curve_fit(
+        lambda x, a, b: a * x**b, xvals, yvals, p0=[a_true, b_true]
+    )
+
+    assert abs(b_weighted - b_nls) < abs(b_unweighted - b_nls)
+    assert b_weighted == approx(0.4625034431995891, abs=1e-6)

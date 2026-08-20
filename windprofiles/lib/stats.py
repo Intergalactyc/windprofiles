@@ -33,6 +33,20 @@ def _drop_nan_pairs(xvals: list, yvals: list) -> tuple[list, list]:
     return list(xs), list(ys)
 
 
+def _drop_nan_triples(xvals: list, yvals: list, weights: list) -> tuple[list, list, list]:
+    """
+    Filters (x, y, w) triples to drop any where any value is NaN.
+    """
+    triples = [
+        (x, y, w) for x, y, w in zip(xvals, yvals, weights)
+        if not (math.isnan(x) or math.isnan(y) or math.isnan(w))
+    ]
+    if not triples:
+        return [], [], []
+    xs, ys, ws = zip(*triples)
+    return list(xs), list(ys), list(ws)
+
+
 def ls_linear_fit(xvals, yvals):
     """
     Least squares fit to a relationship y = a + b*x
@@ -53,6 +67,30 @@ def ls_linear_fit(xvals, yvals):
     det = n * sum_x2 - sum_x * sum_x
     A = (sum_y * sum_x2 - sum_x * sum_xy) / det
     B = (n * sum_xy - sum_x * sum_y) / det
+    return A, B
+
+
+def ls_weighted_linear_fit(xvals, yvals, weights):
+    """
+    Weighted least squares fit to a relationship y = a + b*x
+    Outputs a pair a,b describing fit
+    """
+    if len(yvals) == 0 or len(xvals) == 0:
+        return 0, 0
+    xvals = list(xvals)
+    yvals = list(yvals)
+    weights = list(weights)
+    if not (len(yvals) == len(xvals) == len(weights)):
+        raise RuntimeError("Lists must be of equal size")
+    xvals, yvals, weights = _drop_nan_triples(xvals, yvals, weights)
+    sum_w = sum(weights)
+    sum_wx = sum(w * x for w, x in zip(weights, xvals))
+    sum_wx2 = sum(w * x * x for w, x in zip(weights, xvals))
+    sum_wy = sum(w * y for w, y in zip(weights, yvals))
+    sum_wxy = sum(w * x * y for w, x, y in zip(weights, xvals, yvals))
+    det = sum_w * sum_wx2 - sum_wx * sum_wx
+    A = (sum_wy * sum_wx2 - sum_wx * sum_wxy) / det
+    B = (sum_w * sum_wxy - sum_wx * sum_wy) / det
     return A, B
 
 
@@ -96,6 +134,9 @@ def power_fit(xvals, yvals, require=2):
     Least squares fit to relationship y = a*x^b
     Outputs a pair a,b describing fit
     The b is exactly the wind shear coefficient for wind p.l. fit
+    Fit in log-space is weighted by y^2, so squared residuals are
+    approximately minimized in real y-space rather than log-space
+    (unweighted log-space fitting underweights large-y points).
     """
     xconsider = []
     yconsider = []
@@ -107,7 +148,8 @@ def power_fit(xvals, yvals, require=2):
             yconsider.append(y)
     if len(yconsider) < require:
         return np.nan, np.nan
-    lnA, B = ls_linear_fit(np.log(xconsider), np.log(yconsider))
+    weights = [y * y for y in yconsider]
+    lnA, B = ls_weighted_linear_fit(np.log(xconsider), np.log(yconsider), weights)
     return np.exp(lnA), B
 
 
